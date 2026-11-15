@@ -6,6 +6,7 @@ const SchoolSchema = new mongoose.Schema({
   motto: { type: String, default: "" },
   logo: { type: String, default: "" },            // image URL or base64
   invoiceName: { type: String, default: "" },     // name printed on receipts/invoices
+  reportTheme: { type: String, default: "y" },    // report card colour: y b p c g v o s
   address: { type: String, default: "" },
   phone: { type: String, default: "" },
   colors: {
