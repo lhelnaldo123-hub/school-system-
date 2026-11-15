@@ -18,6 +18,11 @@ const SchoolSchema = new mongoose.Schema({
       "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5",
       "Grade 6", "Grade 7", "Grade 8", "Grade 9"]
   },
+  subjects: {
+    type: [String],
+    default: ["English Language", "Mathematics", "Integrated Science", "Social Studies", "RME",
+      "Computing", "Creative Arts", "Ghanaian Language", "French"]
+  },
   // Fee reminder settings (owner can change)
   reminder: {
     enabled: { type: Boolean, default: false },
