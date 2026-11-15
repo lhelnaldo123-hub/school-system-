@@ -1,0 +1,14 @@
+{
+  "name": "School App",
+  "short_name": "School",
+  "description": "School fees, report cards and notices for parents, teachers and staff.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b2a8f",
+  "theme_color": "#0b2a8f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
