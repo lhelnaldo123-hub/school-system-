@@ -162,47 +162,49 @@ function openModal(h) { const m = $("#modal"); m.innerHTML = `<div class="mc">${
 function closeModal() { $("#modal").hidden = true; }
 
 /* ---------- report card (used by parents and staff) ---------- */
+/* Colour templates come from the old TSCS SBA system. The owner picks one in School Settings. */
+const THEMES = { y: "Gold & Blue", b: "Royal Blue", p: "Pink", c: "Classic", g: "Green", v: "Violet", o: "Orange", s: "School colours" };
+const themeOf = t => THEMES[t] ? t : (THEMES[(S.school || {}).reportTheme] ? S.school.reportTheme : "y");
 function grade(t) { return t >= 80 ? ["A", "Excellent"] : t >= 70 ? ["B", "Very Good"] : t >= 60 ? ["C", "Good"] : t >= 50 ? ["D", "Credit"] : t >= 40 ? ["E", "Pass"] : ["F", "Fail"]; }
 function tot(r) { return (r.subjects || []).reduce((a, s) => a + (+s.classScore || 0) + (+s.examScore || 0), 0); }
 function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
-function reportHTML(r) {
-  const sc = S.school || {}, tt = tot(r), max = (r.subjects || []).length * 100;
-  const rows = (r.subjects || []).map(s => {
+function reportHTML(r, theme) {
+  const sc = S.school || {}, th = themeOf(theme);
+  const subs = r.subjects || [], tt = tot(r), max = subs.length * 100;
+  const avg = subs.length ? Math.round(tt / subs.length * 10) / 10 : 0;
+  const og = subs.length ? grade(avg) : ["-", ""];
+  const rows = subs.map(s => {
     const t = (+s.classScore || 0) + (+s.examScore || 0), g = grade(t);
-    return `<tr><td class="l">${esc(s.name)}</td><td>${s.classScore == null ? "" : s.classScore}</td><td>${s.examScore == null ? "" : s.examScore}</td><td><b>${t}</b></td><td>${g[0]}</td><td class="l">${g[1]}</td></tr>`;
+    return `<tr><td class="sj">${esc(s.name)}</td><td class="ink">${s.classScore == null ? "" : s.classScore}</td><td class="ink">${s.examScore == null ? "" : s.examScore}</td><td class="ink">${t}</td><td><b>${g[0]}</b></td><td class="l">${g[1]}</td></tr>`;
   }).join("");
-  return `<div class="rc"><div class="rh"><div class="lo2">${logoHTML()}</div><div><h2>${esc(sc.invoiceName || sc.name)}</h2><p>${esc(sc.address || "")} ${esc(sc.phone || "")}</p><p><i>${esc(sc.motto || "")}</i></p></div></div>
-  <div class="rbn">${r.type === "mock" ? "MOCK EXAMINATION RESULTS" : "TERMINAL REPORT CARD"} — ${esc(r.term)} ${esc(r.year)}</div>
-  <div class="ri"><div><small>NAME</small><b>${esc(r.studentName)}</b></div><div><small>CLASS</small><b>${esc(r.className)}</b></div>
-  <div><small>POSITION</small><b>${r.position ? ordinal(r.position) + " of " + r.outOf : "-"}</b></div><div><small>TOTAL</small><b>${tt} / ${max}</b></div></div>
-  <table class="rt2"><thead><tr><th class="l">SUBJECT</th><th>CLASS (50)</th><th>EXAM (50)</th><th>TOTAL (100)</th><th>GRADE</th><th class="l">REMARK</th></tr></thead><tbody>${rows}</tbody></table>
-  <p class="nt"><b>Remark:</b> ${esc(r.remark || "")}</p>
-  <div class="sg"><div>Class teacher</div><div>Head teacher</div></div>
-  <p class="ky">Key: A 80-100 Excellent · B 70-79 Very Good · C 60-69 Good · D 50-59 Credit · E 40-49 Pass · F 0-39 Fail</p></div>`;
+  const key = [["80 - 100", "A", "Excellent"], ["70 - 79", "B", "Very Good"], ["60 - 69", "C", "Good"], ["50 - 59", "D", "Credit"], ["40 - 49", "E", "Pass"], ["0 - 39", "F", "Fail"]]
+    .map(k => `<tr><td>${k[0]}</td><td>${k[1]}</td><td class="l">${k[2]}</td></tr>`).join("");
+  const addr = [sc.address, sc.phone].filter(Boolean).map(esc).join(" · ");
+  const pos = r.position ? ordinal(r.position) + " of " + r.outOf : "-";
+  const initial = esc((r.studentName || "?").trim().charAt(0).toUpperCase());
+  return `<div class="rc2 th-${th}">
+    ${r.type === "mock" ? '<div class="x-stamp"><b>MOCK</b>EXAM</div>' : ""}
+    <div class="x-head"><div class="x-logo">${logoHTML()}</div><div class="x-hm"><h2>${esc(sc.invoiceName || sc.name)}</h2>${addr ? `<p>${addr}</p>` : ""}${sc.motto ? `<p class="x-mt">${esc(sc.motto)}</p>` : ""}</div></div>
+    <div class="x-ban">${r.type === "mock" ? "MOCK EXAMINATION RESULTS" : "END OF TERM REPORT"}</div>
+    <div class="x-info"><div class="x-grid">
+      <div><small>Name</small><b class="ink">${esc(r.studentName)}</b></div><div><small>Class</small><b class="ink">${esc(r.className)}</b></div>
+      <div><small>Term</small><b class="ink">${esc(r.term)}</b></div><div><small>Year</small><b class="ink">${esc(r.year)}</b></div></div>
+      <div class="x-photo">${r.photo ? `<img src="${esc(r.photo)}" alt="">` : initial}</div></div>
+    <table class="x-tbl"><thead><tr><th class="l">SUBJECT</th><th>CLASS (50)</th><th>EXAM (50)</th><th>TOTAL (100)</th><th>GRADE</th><th class="l">REMARK</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="x-sum"><div><small>Total score</small><b>${tt} / ${max}</b></div><div><small>Average</small><b>${avg}</b></div><div><small>Position</small><b>${pos}</b></div><div><small>Overall grade</small><b>${og[0]}${og[1] ? " · " + og[1] : ""}</b></div></div>
+    <div class="x-cg"><div><div class="x-lb">Class teacher's remark</div><div class="x-ln ink">${esc(r.remark || "")}</div><div class="x-ln"></div>
+      <div class="x-lb">Head teacher's remark</div><div class="x-ln"></div><div class="x-ln"></div></div>
+      <div><table class="x-gt"><thead><tr><th>MARKS</th><th>GRADE</th><th class="l">REMARK</th></tr></thead><tbody>${key}</tbody></table></div></div>
+    <div class="x-sign"><div>Class teacher</div><div>Head teacher</div></div>
+  </div>`;
 }
-function showReport(r) {
-  openModal(reportHTML(r) + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>');
+function showReport(r, theme) {
+  window.RP = r;
+  const cur = themeOf(theme);
+  const pick = S.user.role === "parent" ? "" : `<select onchange="showReport(RP,this.value)" style="width:auto">${Object.keys(THEMES).map(k => `<option value="${k}"${k === cur ? " selected" : ""}>${THEMES[k]}</option>`).join("")}</select>`;
+  openModal(reportHTML(r, cur) + `<div class="noprint">${pick}<button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`);
 }
-function wa(phone, msg) { let d = String(phone || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "233" + d.slice(1); return "https://wa.me/" + d + "?text=" + encodeURIComponent(msg); }
- ? ["C", "Good"] : t >= 50 ? ["D", "Credit"] : t >= 40 ? ["E", "Pass"] : ["F", "Fail"]; }
-function tot(r) { return (r.subjects || []).reduce((a, s) => a + (+s.classScore || 0) + (+s.examScore || 0), 0); }
-function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
-function reportHTML(r) {
-  const sc = S.school || {}, tt = tot(r), max = (r.subjects || []).length * 100;
-  const rows = (r.subjects || []).map(s => {
-    const t = (+s.classScore || 0) + (+s.examScore || 0), g = grade(t);
-    return `<tr><td class="l">${esc(s.name)}</td><td>${s.classScore == null ? "" : s.classScore}</td><td>${s.examScore == null ? "" : s.examScore}</td><td><b>${t}</b></td><td>${g[0]}</td><td class="l">${g[1]}</td></tr>`;
-  }).join("");
-  return `<div class="rc"><div class="rh"><div class="lo2">${logoHTML()}</div><div><h2>${esc(sc.invoiceName || sc.name)}</h2><p>${esc(sc.address || "")} ${esc(sc.phone || "")}</p><p><i>${esc(sc.motto || "")}</i></p></div></div>
-  <div class="rbn">${r.type === "mock" ? "MOCK EXAMINATION RESULTS" : "TERMINAL REPORT CARD"} — ${esc(r.term)} ${esc(r.year)}</div>
-  <div class="ri"><div><small>NAME</small><b>${esc(r.studentName)}</b></div><div><small>CLASS</small><b>${esc(r.className)}</b></div>
-  <div><small>POSITION</small><b>${r.position ? ordinal(r.position) + " of " + r.outOf : "-"}</b></div><div><small>TOTAL</small><b>${tt} / ${max}</b></div></div>
-  <table class="rt2"><thead><tr><th class="l">SUBJECT</th><th>CLASS (50)</th><th>EXAM (50)</th><th>TOTAL (100)</th><th>GRADE</th><th class="l">REMARK</th></tr></thead><tbody>${rows}</tbody></table>
-  <p class="nt"><b>Remark:</b> ${esc(r.remark || "")}</p>
-  <div class="sg"><div>Class teacher</div><div>Head teacher</div></div>
-  <p class="ky">Key: A 80-100 Excellent · B 70-79 Very Good · C 60-69 Good · D 50-59 Credit · E 40-49 Pass · F 0-39 Fail</p></div>`;
-}
-function showReport(r) {
-  openModal(reportHTML(r) + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>');
+function showReports(list) {
+  openModal(list.map(r => `<div class="pgc">${reportHTML(r)}</div>`).join("") + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>');
 }
 function wa(phone, msg) { let d = String(phone || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "233" + d.slice(1); return "https://wa.me/" + d + "?text=" + encodeURIComponent(msg); }
