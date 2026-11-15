@@ -202,13 +202,14 @@ async function loadReports() {
       return { name: s.name, total: t, published: rep.published, rep: Object.assign({}, rep, { studentName: s.name, position: totals.indexOf(t) + 1, outOf: totals.length }) };
     });
     const sh = staffHead(), any = RR.some(x => !x.none), pubd = RR.some(x => x.published);
-    $("#rc_out").innerHTML = (sh && any ? `<div class="r2"><button class="y" onclick="publishAll(true)">📤 Publish to parents</button><button class="g" onclick="publishAll(false)">Hide from parents</button></div>` : "")
+    $("#rc_out").innerHTML = (any ? '<button class="g" onclick="printAll()">🖨 Print all report cards</button>' : "") + (sh && any ? `<div class="r2"><button class="y" onclick="publishAll(true)">📤 Publish to parents</button><button class="g" onclick="publishAll(false)">Hide from parents</button></div>` : "")
       + (RR.length ? RR.map((x, i) => x.none ? `<div class="c"><div class="g1"><b>${esc(x.name)}</b><div class="mu">No scores yet</div></div></div>`
         : `<div class="c"><div class="g1"><b>${esc(x.name)}</b><div class="mu">Total ${x.total} · Position ${x.rep.position} of ${x.rep.outOf}</div></div><span class="badge ${x.published ? "ok" : ""}">${x.published ? "Published" : "Hidden"}</span><button class="sm" onclick="showReport(RR[${i}].rep)">View</button></div>`).join("")
         : '<p class="mu">No students in this class.</p>');
   } catch (e) { toast(e.message); }
   busy(false);
 }
+function printAll() { showReports(RR.filter(x => !x.none).map(x => x.rep)); }
 async function publishAll(flag) {
   if (!confirm(flag ? "Parents will see these report cards. Continue?" : "Hide these report cards from parents?")) return;
   busy(true);
@@ -228,6 +229,7 @@ PS.settings = async m => {
     <label class="l1">Address</label><input id="st_ad" value="${esc(s.address || "")}"><label class="l1">Phone</label><input id="st_ph" value="${esc(s.phone || "")}">
     <label class="l1">Logo</label><div style="display:flex;gap:10px;align-items:center"><div class="lgpv" id="lg_pv">${logoHTML()}</div><input type="file" accept="image/*" onchange="pickLogo(this)"></div>
     <div class="r2"><div><label class="l1">Main colour</label><input id="st_p" type="color" value="${esc((s.colors || {}).primary || "#0b2a8f")}"></div><div><label class="l1">Accent colour</label><input id="st_a" type="color" value="${esc((s.colors || {}).accent || "#f5b800")}"></div></div></div>
+    <div class="fm"><b>Report card colour</b><p class="mu">Parents and staff see report cards in this colour.</p><select id="st_th">${Object.keys(THEMES).map(k => `<option value="${k}"${(s.reportTheme || "y") === k ? " selected" : ""}>${THEMES[k]}</option>`).join("")}</select></div>
     <div class="fm"><b>Classes</b><p class="mu">One per line, from the lowest class to the highest.</p><textarea id="st_cl" rows="8">${esc((s.classes || []).join("\n"))}</textarea></div>
     <div class="fm"><b>Subjects</b><p class="mu">One per line. These appear on report cards.</p><textarea id="st_sb" rows="8">${esc((s.subjects || []).join("\n"))}</textarea></div>
     <div class="fm"><b>Fee reminders to parents</b><label class="chk1" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="st_re" ${r.enabled ? "checked" : ""}> Send reminders automatically</label>
@@ -255,6 +257,7 @@ async function saveSettings() {
     name: $("#st_n").value.trim(), invoiceName: $("#st_i").value.trim(), motto: $("#st_m").value.trim(),
     address: $("#st_ad").value.trim(), phone: $("#st_ph").value.trim(),
     colors: { primary: $("#st_p").value, accent: $("#st_a").value },
+    reportTheme: $("#st_th").value,
     classes: lines("#st_cl"), subjects: lines("#st_sb"),
     reminder: { enabled: $("#st_re").checked, channel: $("#st_ch").value, monthsLimit: +$("#st_ml").value, dayOfMonth: +$("#st_dy").value, message: $("#st_ms").value.trim() }
   };
