@@ -16,7 +16,7 @@ router.get("/mine", auth(), async (req, res) => {
 
 // Owner changes school name, colours, logo, motto, classes, invoice name, reminder settings
 router.put("/mine", auth(["owner"]), async (req, res) => {
-  const allowed = ["name", "motto", "logo", "invoiceName", "address", "phone", "colors", "classes", "subjects", "reminder"];
+  const allowed = ["name", "motto", "logo", "invoiceName", "address", "phone", "colors", "reportTheme", "classes", "subjects", "reminder"];
   const upd = {};
   allowed.forEach(k => { if (req.body[k] !== undefined) upd[k] = req.body[k]; });
   res.json(await School.findByIdAndUpdate(req.user.schoolId, upd, { new: true }));
