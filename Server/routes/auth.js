@@ -37,9 +37,11 @@ router.post("/login", async (req, res) => {
     const { code, email, password } = req.body;
     const school = await School.findOne({ code: (code || "").toLowerCase() });
     if (!school) return res.status(400).json({ error: "School not found" });
-    const user = await User.findOne({ schoolId: school._id, email: (email || "").toLowerCase() });
+    // sign in with email OR phone number
+    const id = (email || "").trim().toLowerCase();
+    const user = await User.findOne({ schoolId: school._id, $or: [{ email: id }, { phone: id }] });
     if (!user || !user.active || !(await bcrypt.compare(password || "", user.passwordHash)))
-      return res.status(400).json({ error: "Wrong email or password" });
+      return res.status(400).json({ error: "Wrong email/phone or password" });
     res.json({ token: sign(user), user: { id: user._id, name: user.name, role: user.role, classes: user.classes }, school });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -47,8 +49,12 @@ router.post("/login", async (req, res) => {
 // 3) Owner/head creates head, teacher or parent accounts
 router.post("/users", auth(["owner", "head"]), async (req, res) => {
   try {
-    const { name, email, phone, password, role, classes } = req.body;
+    let { name, email, phone, password, role, classes } = req.body;
     if (!["head", "teacher", "parent"].includes(role)) return res.status(400).json({ error: "Bad role" });
+    if (!name) return res.status(400).json({ error: "Write the name" });
+    // a parent without email signs in with the phone number
+    if (!email && phone) email = String(phone).replace(/\D/g, "") + "@school-parent.com";
+    if (!email) return res.status(400).json({ error: "Give an email or a phone number" });
     if (role === "head" && req.user.role !== "owner") return res.status(403).json({ error: "Only the owner adds a head" });
     const u = await User.create({
       schoolId: req.user.schoolId, name, email, phone, role, classes: classes || [],
