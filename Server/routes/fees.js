@@ -34,11 +34,32 @@ router.get("/history", auth(["parent"]), async (req, res) => {
   res.json(pays);
 });
 
+// Head/owner: fees and balances of one student
+router.get("/student/:id", auth(["owner", "head"]), async (req, res) => {
+  const st = await Student.findOne({ _id: req.params.id, schoolId: req.user.schoolId });
+  if (!st) return res.status(404).json({ error: "Student not found" });
+  res.json(await studentFees(st));
+});
+
+// Head/owner removes a fee that nobody has paid yet
+router.delete("/:id", auth(["owner", "head"]), async (req, res) => {
+  const paid = await Payment.findOne({ feeId: req.params.id, schoolId: req.user.schoolId, status: "success" });
+  if (paid) return res.status(400).json({ error: "Payments already made on this fee, cannot delete" });
+  await Fee.deleteOne({ _id: req.params.id, schoolId: req.user.schoolId });
+  res.json({ ok: true });
+});
+
 // Head records a cash/bank payment made at the office
 router.post("/cash", auth(["owner", "head"]), async (req, res) => {
   const { studentId, feeId, amount } = req.body;
+  const st = await Student.findOne({ _id: studentId, schoolId: req.user.schoolId });
+  if (!st) return res.status(404).json({ error: "Student not found" });
+  const fee = (await studentFees(st)).find(x => String(x.feeId) === String(feeId));
+  if (!fee) return res.status(404).json({ error: "Fee not found" });
+  const amt = Math.min(Number(amount) || fee.balance, fee.balance);
+  if (amt <= 0) return res.status(400).json({ error: "Nothing to pay" });
   const p = await Payment.create({
-    schoolId: req.user.schoolId, studentId, feeId, amount, method: "cash",
+    schoolId: req.user.schoolId, studentId, feeId, amount: amt, method: "cash",
     reference: "CASH-" + Date.now(), status: "success", paidAt: new Date()
   });
   res.json(p);
