@@ -1,0 +1,109 @@
+/* report.css - end-of-term report card.
+   Colour templates and layout follow the old TSCS SBA index.html.
+   Every class here starts with .rc2 or x- so it cannot clash with the receipt styles in index.html. */
+
+/* ---- colour templates (same values as the old system) ---- */
+.th-y{--pa:#0b2a8f;--ac:#f5b800;--rt:#f5b800;--bg1:#fff2b0;--bg2:#fffbe0;--bd:#d9a500;--tx:#5a4a1a;--ink:#0d1f8f;--cell:#fffdf0;--ln:#8a6a00}
+.th-b{--pa:#0b2a8f;--ac:#3b82f6;--rt:#ffffff;--bg1:#cfe0ff;--bg2:#f3f8ff;--bd:#2f5fd0;--tx:#1f3a7a;--ink:#0a1a6e;--cell:#fbfdff;--ln:#5b7fd0}
+.th-p{--pa:#b0125f;--ac:#ff5fa2;--rt:#ffe3f0;--bg1:#ffd0e4;--bg2:#fff4f9;--bd:#e0529a;--tx:#7a2150;--ink:#8a0f4d;--cell:#fffafc;--ln:#d77aa8}
+.th-c{--pa:#14213d;--ac:#4a5a8a;--rt:#ffffff;--bg1:#e3e8f5;--bg2:#ffffff;--bd:#6b7280;--tx:#1f2a44;--ink:#14213d;--cell:#ffffff;--ln:#8a93a8;--ttl:#1565ff;--hd:#111}
+.th-g{--pa:#0b6b3a;--ac:#22a55e;--rt:#ffffff;--bg1:#c9f2d9;--bg2:#f3fff8;--bd:#1f8f55;--tx:#1d4d33;--ink:#0a5a2e;--cell:#fbfffc;--ln:#5bb584}
+.th-v{--pa:#5b21b6;--ac:#a78bfa;--rt:#ffffff;--bg1:#e4d9ff;--bg2:#f8f5ff;--bd:#7c4dd6;--tx:#402a7a;--ink:#4a1d9a;--cell:#fcfaff;--ln:#9a7de0}
+.th-o{--pa:#c2410c;--ac:#fb923c;--rt:#ffffff;--bg1:#ffe0c7;--bg2:#fff8f2;--bd:#e0702a;--tx:#7a3510;--ink:#a33208;--cell:#fffcf9;--ln:#e09a62}
+/* the school's own two colours (set in School Settings) */
+.th-s{--pa:var(--b);--ac:var(--y);--rt:#ffffff;--bg1:var(--yl);--bg2:#ffffff;--bd:var(--b);--tx:var(--d);--ink:var(--b);--cell:#ffffff;--ln:var(--b2)}
+
+/* ---- the card ---- */
+.rc2{position:relative;overflow:hidden;max-width:760px;margin:8px auto;padding:20px 18px;color:#1b2133;font-size:12px;
+  background:linear-gradient(var(--bg1),var(--bg2) 30%,var(--bg1));
+  border:2px solid var(--bd);outline:2px solid var(--ac);outline-offset:-8px;border-radius:8px}
+.rc2>*{position:relative;z-index:1}
+.rc2 .ink{font-family:'Caveat','Segoe Script','Bradley Hand','Comic Sans MS',cursive;color:var(--ink);font-weight:700;font-size:17px;line-height:1.15}
+
+.rc2 .x-head{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--pa);padding-bottom:8px}
+.rc2 .x-logo{width:70px;height:70px;flex:none;border-radius:14px;background:#fff;border:2px solid var(--pa);display:grid;place-items:center;overflow:hidden}
+.rc2 .x-logo img{width:58px;max-height:58px;object-fit:contain}
+.rc2 .x-logo b{color:var(--pa);font-size:18px}
+.rc2 .x-hm{min-width:0}
+.rc2 .x-hm h2{margin:0;font-size:20px;line-height:1.1;letter-spacing:1px;font-weight:900;text-transform:uppercase;color:var(--ttl,var(--pa))}
+.rc2 .x-hm p{margin:2px 0 0;font-size:11px;color:var(--tx)}
+.rc2 .x-hm p.x-mt{font-style:italic;letter-spacing:2px;text-transform:uppercase;font-size:10px}
+
+.rc2 .x-ban{margin:10px 0;padding:6px;border-radius:4px;background:var(--hd,var(--pa));color:var(--rt);text-align:center;font-weight:900;letter-spacing:4px;font-size:12px}
+
+.rc2 .x-info{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.rc2 .x-grid{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.rc2 .x-grid div{border-bottom:1px dotted var(--ln);padding-bottom:1px;min-width:0;overflow-wrap:anywhere}
+.rc2 .x-grid small,.rc2 .x-sum small,.rc2 .x-lb{color:var(--tx);font-weight:700;text-transform:uppercase;font-size:10px}
+.rc2 .x-grid small{margin-right:5px}
+.rc2 .x-photo{width:74px;height:88px;flex:none;border:1px solid var(--bd);background:#fff;display:grid;place-items:center;overflow:hidden;color:var(--pa);font-size:30px;font-weight:900}
+.rc2 .x-photo img{width:100%;height:100%;object-fit:cover}
+
+.rc2 .x-tbl{width:100%;border-collapse:collapse}
+.rc2 .x-tbl th{background:var(--hd,var(--pa));color:#fff;border:1px solid var(--hd,var(--pa));padding:5px 4px;font-size:11px}
+.rc2 .x-tbl td{border:1px solid var(--bd);background:var(--cell);padding:2px 5px;text-align:center}
+.rc2 .x-tbl td.sj{text-align:left;font-weight:700}
+.rc2 .x-tbl td.l,.rc2 .x-tbl th.l{text-align:left}
+
+.rc2 .x-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.rc2 .x-sum div{background:#fff;border:1px solid var(--bd);border-radius:6px;padding:4px;text-align:center}
+.rc2 .x-sum small{display:block}
+.rc2 .x-sum b{font-size:15px;color:var(--pa)}
+
+.rc2 .x-cg{display:flex;gap:14px;align-items:flex-start}
+.rc2 .x-cg>div:first-child{flex:1.3;min-width:0}
+.rc2 .x-cg>div:last-child{flex:1;min-width:0}
+.rc2 .x-ln{border-bottom:1px dotted var(--ln);min-height:26px;margin:3px 0 8px;padding-top:2px}
+.rc2 .x-gt{width:100%;border-collapse:collapse;font-size:10px}
+.rc2 .x-gt th{background:var(--bg1);border:1px solid var(--bd);padding:2px}
+.rc2 .x-gt td{border:1px solid var(--bd);background:var(--cell);padding:2px 4px;text-align:center}
+.rc2 .x-gt td.l,.rc2 .x-gt th.l{text-align:left}
+
+.rc2 .x-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:30px}
+.rc2 .x-sign div{border-top:1px solid #1b2133;text-align:center;font-size:11px;padding-top:2px}
+
+.rc2>.x-stamp{position:absolute;right:14px;top:10px;width:62px;height:62px;border-radius:50%;background:var(--ac);color:#1b2133;border:3px double #fff;display:grid;place-items:center;align-content:center;text-align:center;font-weight:900;font-size:10px;line-height:1;transform:rotate(12deg);z-index:2}
+.rc2 .x-stamp b{display:block;font-size:17px}
+
+/* ---- flourishes for each template ---- */
+.th-y .x-head{border-bottom:3px double var(--pa)}
+.th-y .x-ban:before{content:"\2605   "}.th-y .x-ban:after{content:"   \2605"}
+
+.th-b.rc2{border:1px solid var(--bd);border-top:14px solid var(--pa);border-bottom:14px solid var(--pa);outline:0;border-radius:4px;background:var(--bg2)}
+.th-b.rc2:before,.th-b.rc2:after{content:"";position:absolute;width:150px;height:150px;z-index:0;opacity:.6}
+.th-b.rc2:before{top:0;right:0;background:linear-gradient(225deg,var(--bg1) 0 50%,transparent 50%)}
+.th-b.rc2:after{bottom:0;left:0;background:linear-gradient(45deg,var(--bg1) 0 50%,transparent 50%)}
+.th-b .x-head{border-bottom:4px solid var(--ac)}
+.th-b .x-ban{background:linear-gradient(90deg,var(--pa),var(--ac));border-radius:0;color:#fff}
+.th-b .x-sum div{border-left:5px solid var(--ac)}
+
+.th-p.rc2{border:4px dotted var(--ac);outline:3px solid var(--pa);outline-offset:-11px;border-radius:28px;
+  background:radial-gradient(circle at 0 0,var(--bg1) 0 110px,transparent 111px),radial-gradient(circle at 100% 100%,var(--bg1) 0 110px,transparent 111px),var(--bg2)}
+.th-p .x-head{border-bottom:3px dotted var(--ac)}
+.th-p .x-logo{border-radius:50%}
+.th-p .x-ban{border-radius:30px}
+.th-p .x-ban:before{content:"\2740   "}.th-p .x-ban:after{content:"   \2740"}
+.th-p .x-sum div{border-radius:14px;border:2px dashed var(--ac)}
+.th-p .x-sign div{border-top:2px dotted var(--pa)}
+
+.th-c.rc2{outline:0;border-radius:4px;background:#fff;border:1px solid var(--bd)}
+
+.th-g.rc2,.th-v.rc2,.th-o.rc2,.th-s.rc2{border-radius:6px;border-top:12px solid var(--pa);border-bottom:12px solid var(--pa);outline:2px solid var(--ac);outline-offset:-8px}
+
+/* ---- small screens (phones) ---- */
+@media(max-width:480px){
+  .rc2{padding:14px 12px}
+  .rc2 .x-sum{grid-template-columns:1fr 1fr}
+  .rc2 .x-cg{flex-direction:column}
+  .rc2 .x-cg>div{width:100%}
+  .rc2 .x-hm h2{font-size:16px}
+}
+
+/* ---- printing: one A4 page per report card, filled top to bottom ---- */
+@page{size:A4 portrait;margin:8mm}
+@media print{
+  .pgc{break-after:page;page-break-after:always}
+  .pgc:last-child{break-after:auto;page-break-after:auto}
+  .rc2{margin:0;max-width:none;font-size:12.5px}
+  .pgc .rc2,.mc>.rc2{min-height:276mm;display:flex;flex-direction:column;justify-content:space-between}
+}
