@@ -195,6 +195,13 @@ function closeModal() { $("#modal").hidden = true; }
 /* ---------- report card (used by parents and staff) ---------- */
 /* Colour templates come from the old TSCS SBA system. The owner picks one in School Settings. */
 const THEMES = { y: "Gold & Blue", b: "Royal Blue", p: "Pink", c: "Classic", g: "Green", v: "Violet", o: "Orange", s: "School colours" };
+/* Layout styles: the card's design (header, table, boxes). Works together with any colour template above.
+   d = Classic (the original look). Others are defined in report.css as .lay-xxx */
+const LAYOUTS = { d: "Classic (default)", m: "Modern", e: "Elegant", b: "Bold" };
+const layoutOf = l => { if (LAYOUTS[l]) return l; const o = S.user && S.user.role === "parent" ? "" : J("rcLayout", ""); if (LAYOUTS[o]) return o; const s = (S.school || {}).reportLayout; return LAYOUTS[s] ? s : "d"; };
+const layCls = th => { const l = layoutOf(); return l === "d" || th === "u" ? "" : " lay-" + l; };
+function setLayout(v) { try { localStorage.setItem("rcLayout", JSON.stringify(v)); } catch (e) { } if ($("#modal") && !$("#modal").hidden && window.RP) showReport(window.RP, window.RPT); else go(S.page); }
+const laySel = () => S.user.role === "parent" ? "" : `<select onchange="setLayout(this.value)" style="width:auto" title="Card style">${Object.keys(LAYOUTS).map(k => `<option value="${k}"${k === layoutOf() ? " selected" : ""}>${LAYOUTS[k]}</option>`).join("")}</select>`;
 const tplOn = () => !!((S.school || {}).reportTpl && S.school.reportTpl.img);
 const themeList = () => tplOn() ? Object.assign({}, THEMES, { u: "My own template" }) : THEMES;
 const themeOf = t => { const L = themeList(); return L[t] ? t : (L[(S.school || {}).reportTheme] ? S.school.reportTheme : "y"); };
@@ -209,8 +216,8 @@ function applyLook() {
   r.style.setProperty("--inks", size + "px");
   if (k.color) r.style.setProperty("--inkc", k.color); else r.style.removeProperty("--inkc");
   const t = (S.school || {}).reportTpl || {};
-  if (t.img) { r.style.setProperty("--tplimg", `url("${t.img}")`); r.style.setProperty("--tpltop", (t.top == null ? 40 : t.top) + "mm"); r.style.setProperty("--tplside", (t.side == null ? 10 : t.side) + "mm"); }
-  else { r.style.removeProperty("--tplimg"); r.style.removeProperty("--tpltop"); r.style.removeProperty("--tplside"); }
+  if (t.img) { r.style.setProperty("--tplimg", `url("${t.img}")`); r.style.setProperty("--tpltop", (t.top == null ? 40 : t.top) + "mm"); r.style.setProperty("--tplside", (t.side == null ? 10 : t.side) + "mm"); r.style.setProperty("--tplbot", (t.bot == null ? 12 : t.bot) + "mm"); }
+  else { r.style.removeProperty("--tplimg"); r.style.removeProperty("--tpltop"); r.style.removeProperty("--tplside"); r.style.removeProperty("--tplbot"); }
   r.dataset.tplhd = t.hideHead === false ? "1" : "0";
   if (!print && document.fonts && document.fonts.load) document.fonts.load(`700 16px "${k.font}"`).then(() => shFit(document)).catch(() => { });
   shFit(document);
@@ -224,6 +231,36 @@ function fitCard(c) {
   const cells = c.querySelectorAll(".x-tbl td,.x-tbl th"), set = p => cells.forEach(x => { x.style.paddingTop = x.style.paddingBottom = p + "px"; });
   let p = 13; set(p);
   while (p > 1 && c.scrollHeight > c.clientHeight + 1) { p--; set(p); }
+  // own template: if the content still does not fit between the top and bottom margins, shrink it a little more
+  if (c.classList.contains("th-u")) {
+    const kids = [...c.children], zoom = z => kids.forEach(k => { k.style.zoom = z < 1 ? z : ""; });
+    let z = 1; zoom(1);
+    while (z > .55 && c.scrollHeight > c.clientHeight + 1) { z = Math.round((z - .03) * 100) / 100; zoom(z); }
+  }
+}
+
+/* Looks at the school's blank A4 picture and works out where the empty middle is,
+   so the marks, names and tables are printed inside it (not over the header, footer or border).
+   Returns { top, bot, side } in mm, or null if the picture has no clear empty area. */
+function autoFitTpl(src) {
+  return new Promise(ok => {
+    const im = new Image(); im.onerror = () => ok(null);
+    im.onload = () => {
+      const w = 200, h = Math.round(w * im.height / im.width), c = document.createElement("canvas"); c.width = w; c.height = h;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(im, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h).data, ink = (x, y) => { const i = (y * w + x) * 4; return d[i + 3] > 20 && (d[i] + d[i + 1] + d[i + 2]) / 3 < 235; };
+      const x0 = Math.round(w * .15), x1 = Math.round(w * .85), blank = [];
+      for (let y = 0; y < h; y++) { let n = 0; for (let x = x0; x < x1; x++) if (ink(x, y)) n++; blank.push(n <= 1); }
+      let best = 0, bs = 0, s = -1;
+      for (let y = 0; y <= h; y++) { if (y < h && blank[y]) { if (s < 0) s = y; } else if (s >= 0) { if (y - s > best) { best = y - s; bs = s; } s = -1; } }
+      if (best < h * .25) return ok(null);
+      let L = 0, R = w;
+      for (let y = bs; y < bs + best; y++) { for (let x = 0; x < w / 2; x++) if (ink(x, y) && x > L) L = x; for (let x = w - 1; x >= w / 2; x--) if (ink(x, y) && x < R) R = x; }
+      const mmX = 198 / w, mmY = 284 / h;
+      ok({ top: Math.round(bs * mmY + 2), bot: Math.round((h - bs - best) * mmY + 2), side: Math.max(6, Math.round(Math.max(L, w - R) * mmX + 4)) });
+    };
+    im.src = src;
+  });
 }
 function shFit(root) {
   (root || document).querySelectorAll(".rc2").forEach(c => {
@@ -261,7 +298,7 @@ function reportHTML(r, theme) {
   const addr = [sc.address, sc.phone].filter(Boolean).map(esc).join(" · ");
   const pos = r.position ? ordinal(r.position) + " of " + r.outOf : "-";
   const initial = esc((r.studentName || "?").trim().charAt(0).toUpperCase());
-  return `<div class="rc2 th-${th}">
+  return `<div class="rc2 th-${th}${layCls(th)}">
     ${r.type === "mock" ? '<div class="x-stamp"><b>MOCK</b>EXAM</div>' : ""}
     <div class="x-head"><div class="x-logo">${logoHTML()}</div><div class="x-hm"><h2>${esc(sc.invoiceName || sc.name)}</h2>${addr ? `<p>${addr}</p>` : ""}${sc.motto ? `<p class="x-mt">${esc(sc.motto)}</p>` : ""}</div></div>
     <div class="x-ban">${r.type === "mock" ? "MOCK EXAMINATION RESULTS" : "END OF TERM REPORT"}</div>
@@ -278,9 +315,9 @@ function reportHTML(r, theme) {
   </div>`;
 }
 function showReport(r, theme) {
-  window.RP = r;
+  window.RP = r; window.RPT = theme;
   const cur = themeOf(theme);
-  const pick = S.user.role === "parent" ? "" : `<select onchange="showReport(RP,this.value)" style="width:auto">${Object.keys(themeList()).map(k => `<option value="${k}"${k === cur ? " selected" : ""}>${themeList()[k]}</option>`).join("")}</select>${inkSel()}`;
+  const pick = S.user.role === "parent" ? "" : `<select onchange="showReport(RP,this.value)" style="width:auto">${Object.keys(themeList()).map(k => `<option value="${k}"${k === cur ? " selected" : ""}>${themeList()[k]}</option>`).join("")}</select>${laySel()}${inkSel()}`;
   openModal(`<div class="sheetbox">${reportHTML(r, cur)}</div>` + `<div class="noprint">${pick}<button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`); shFit($("#modal"));
 }
 function showReports(list) {
