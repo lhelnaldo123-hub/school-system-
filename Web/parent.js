@@ -29,13 +29,42 @@ PP.reports = async m => {
 };
 
 PP.pay = async m => {
-  const d = await api("/fees/mine");
-  m.innerHTML = `<h2>Pay fees</h2><p class="mu">Pay safely with card or mobile money (Paystack). You can pay part of a fee.</p>` + (d.length ? d.map(k => `<h3>${esc(k.student.name)} <small class="mu">${esc(k.student.className)}</small></h3>` + (k.fees.length ? k.fees.map(f => `<div class="c" style="flex-wrap:wrap"><div class="g1">
-    <b>${esc(f.title)}</b> ${f.type === "exam" ? '<span class="badge">Exam fee</span>' : ""}
+  const [d, mw] = await Promise.all([api("/fees/mine"), api("/fees/momo/mine").catch(() => [])]);
+  const sc = S.school || {}, mo = sc.momo || {}, ps = !!sc.paystack;
+  const how = (mo.number ? `<div class="fm"><b>📲 Pay by ${esc(mo.network || "Mobile Money")}</b><div style="font-size:20px;font-weight:800;color:var(--b);margin:4px 0">${esc(mo.number)}</div><div>${esc(mo.name || "")}</div>${mo.note ? `<div class="mu">${esc(mo.note)}</div>` : ""}
+    <p class="mu">1. Send the money to this number. 2. Tap "Pay by MoMo" on the fee below and add the transaction ID and a screenshot. 3. The school confirms it and your balance goes down.</p></div>` : "")
+    + (ps ? '<p class="mu">You can also pay online by card or mobile money with Paystack.</p>' : "");
+  const wait = mw.length ? "<h3>Waiting for the school</h3>" + mw.map(p => `<div class="c"><div class="g1"><b>${esc(p.studentId && p.studentId.name)}</b> <div class="mu">${esc(p.feeId && p.feeId.title)} · ${money(p.amount)} · ID ${esc(p.txnId)}</div>${p.status === "rejected" ? `<div class="dn">Rejected: ${esc(p.reason || "please contact the school")}</div>` : ""}</div>
+    <span class="badge${p.status === "review" ? "" : " dn"}">${p.status === "review" ? "Waiting for confirmation" : "Rejected"}</span></div>`).join("") : "";
+  m.innerHTML = `<h2>Pay fees</h2>${how}` + (d.length ? d.map(k => `<h3>${esc(k.student.name)} <small class="mu">${esc(k.student.className)}</small></h3>` + (k.fees.length ? k.fees.map(f => `<div class="c" style="flex-wrap:wrap"><div class="g1">
+    <b>${esc(f.title)}</b> ${f.type === "exam" ? '<span class="badge">Exam fee</span>' : ""} ${f.carried ? `<span class="badge dn">Unpaid from ${esc(f.className)}</span>` : ""}
     <div class="mu">Due ${new Date(f.dueDate).toLocaleDateString()}</div><div class="mu">Total ${money(f.amount)} · Paid ${money(f.paid)}</div></div>`
-    + (f.balance > 0 ? `<div style="min-width:150px"><input id="pa_${f.feeId}_${k.student.id}" type="number" min="1" max="${f.balance}" value="${f.balance}"><button class="y sm" onclick="payNow('${k.student.id}','${f.feeId}')">Pay now</button></div>` : '<b class="up">Paid ✓</b>') + "</div>").join("") : '<p class="mu">No fees yet.</p>')).join("")
-    : '<p class="mu">No children linked yet.</p>');
+    + (f.balance > 0 ? `<div style="min-width:160px"><input id="pa_${f.feeId}_${k.student.id}" type="number" min="1" max="${f.balance}" value="${f.balance}">${mo.number ? `<button class="y sm" style="width:100%" onclick="momoModal('${k.student.id}','${f.feeId}')">📲 Pay by MoMo</button>` : ""}${ps ? `<button class="sm" style="width:100%" onclick="payNow('${k.student.id}','${f.feeId}')">💳 Pay online</button>` : ""}${!mo.number && !ps ? '<span class="mu">Ask the school how to pay</span>' : ""}</div>` : '<b class="up">Paid ✓</b>') + "</div>").join("") : '<p class="mu">No fees yet.</p>')).join("")
+    : '<p class="mu">No children linked yet.</p>') + wait;
 };
+function momoModal(sid, fid) {
+  const amt = +$("#pa_" + fid + "_" + sid).value || 0, mo = (S.school || {}).momo || {};
+  S.mp = { sid, fid, proof: "" };
+  openModal(`<h3>Send proof of MoMo payment</h3><p class="mu">Paid to ${esc(mo.number)} (${esc(mo.name || mo.network || "")}). Fill in what is on your MoMo SMS.</p>
+    <label class="l1">Amount you sent (GHS)</label><input id="mp_a" type="number" min="1" value="${amt}">
+    <label class="l1">Transaction ID (from the SMS)</label><input id="mp_t" placeholder="e.g. 7458123456" autocapitalize="characters">
+    <label class="l1">Number you paid from (optional)</label><input id="mp_n" inputmode="tel">
+    <label class="l1">Screenshot of the payment</label><input type="file" accept="image/*" onchange="momoPick(this)"><img id="mp_i" style="max-width:100%;max-height:260px;margin-top:6px;display:none">
+    <div class="noprint"><button class="y" onclick="momoSend()">Send to school</button><button class="g" onclick="closeModal()">Cancel</button></div>`);
+}
+async function momoPick(inp) {
+  if (!inp.files[0]) return;
+  try { S.mp.proof = await imgShrink(inp.files[0], 900, .7, "image/jpeg"); const i = $("#mp_i"); i.src = S.mp.proof; i.style.display = "block"; }
+  catch (e) { toast("Could not read that picture"); }
+}
+async function momoSend() {
+  const x = S.mp;
+  if (!x.proof) return toast("Add the screenshot first");
+  busy(true);
+  try { await api("/fees/momo", "POST", { studentId: x.sid, feeId: x.fid, amount: +$("#mp_a").value, txnId: $("#mp_t").value, payerNumber: $("#mp_n").value, proof: x.proof }); closeModal(); toast("Sent ✅ The school will confirm it soon"); go("pay"); }
+  catch (e) { toast(e.message); }
+  busy(false);
+}
 async function payNow(sid, fid) {
   const v = +$("#pa_" + fid + "_" + sid).value;
   busy(true);
