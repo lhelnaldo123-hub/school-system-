@@ -6,6 +6,8 @@ const Invite = require("../models/Invite");
 const School = require("../models/School");
 const User = require("../models/User");
 const Student = require("../models/Student");
+const fs = require("fs");
+const path = require("path");
 
 const tries = {}; // simple brute-force guard: ip -> {n, t}
 function same(a, b) {
@@ -36,6 +38,13 @@ router.post("/login", (req, res) => {
   if (!same(req.body.password || "", process.env.ADMIN_PASSWORD)) { t.n++; return res.status(400).json({ error: "Wrong password" }); }
   delete tries[ip];
   res.json({ token: jwt.sign({ role: "admin" }, process.env.JWT_SECRET, { expiresIn: "12h" }) });
+});
+
+// The admin screen itself. It is only sent AFTER a correct password, so it is never public.
+router.get("/panel", guard, (req, res) => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "admin-panel.html"), "utf8");
+  const token = (req.headers.authorization || "").slice(7);
+  res.type("html").send(html.replace("__TOKEN__", () => token));
 });
 
 // Make 1-20 new codes
