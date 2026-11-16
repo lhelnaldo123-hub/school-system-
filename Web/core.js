@@ -33,6 +33,7 @@ function brand(s) {
   r.setProperty("--y", c.accent || "#f5b800");
   $("#tc").content = c.primary || "#0b2a8f";
   document.title = s.name || "School App";
+  applyLook();
 }
 function logoHTML(s) {
   s = s || S.school || {};
@@ -50,6 +51,7 @@ async function boot() {
   if (q.get("school")) { S.code = q.get("school").toLowerCase(); localStorage.setItem("code", S.code); }
   const ref = q.get("paid") || q.get("reference") || q.get("trxref");
   if (ref) localStorage.setItem("paidRef", ref);
+  if (q.get("go")) localStorage.setItem("goPage", q.get("go"));
   if (q.toString()) history.replaceState(null, "", location.pathname);
   const cached = J("brand", null);
   if (cached && cached.code === S.code) brand(cached);
@@ -112,25 +114,28 @@ function finish(j, code) {
   startApp();
 }
 function logout(silent) {
-  S.token = ""; S.user = null; S.parents = null;
+  S.token = ""; S.user = null; S.parents = null; clearInterval(S.nti); S.nti = null; S.nseen = null;
   localStorage.removeItem("token"); localStorage.removeItem("user");
   closeModal(); closeMenu();
   showAuth("login", silent ? "Session ended, please sign in again" : "");
 }
 
 /* ---------- app shell + side menu ---------- */
-const M_HEAD = [["home", "🏠", "Home"], ["students", "👦", "Students"], ["people", "👥", "Parents & Teachers"], ["fees", "💰", "Fees"], ["owing", "⏰", "Who owes"], ["scores", "✏️", "Enter Scores"], ["reports", "📄", "Report Cards"], ["notices", "📢", "Notices"], ["account", "⚙️", "Account"]];
+const M_HEAD = [["home", "🏠", "Home"], ["students", "👦", "Students"], ["people", "👥", "Parents & Teachers"], ["fees", "💰", "Fees"], ["owing", "⏰", "Who owes"], ["momo", "📲", "MoMo payments"], ["scores", "✏️", "Enter Scores"], ["reports", "📄", "Report Cards"], ["notices", "📢", "Notices"], ["account", "⚙️", "Account"]];
 const MENU = {
   parent: [["home", "🏠", "Home"], ["reports", "📄", "Report Cards"], ["pay", "💳", "Pay Fees"], ["history", "🧾", "Payments"], ["notices", "📢", "Notices"], ["account", "⚙️", "Account"]],
   teacher: [["home", "🏠", "Home"], ["scores", "✏️", "Enter Scores"], ["students", "👦", "Students"], ["reports", "📄", "Report Cards"], ["notices", "📢", "Notices"], ["account", "⚙️", "Account"]],
   head: M_HEAD,
-  owner: M_HEAD.slice(0, 8).concat([["settings", "🎨", "School Settings"]], M_HEAD.slice(8))
+  owner: M_HEAD.slice(0, 9).concat([["settings", "🎨", "School Settings"]], M_HEAD.slice(9))
 };
 const ROLE = { owner: "School owner", head: "Head teacher", teacher: "Teacher", parent: "Parent" };
 
 function startApp() {
   $("#auth").hidden = true; $("#app").hidden = false;
   buildMenu(); go("home");
+  api("/school/mine").then(x => { brand(x); }).catch(() => { });
+  startNotes();
+  const gp = localStorage.getItem("goPage"); if (gp) { localStorage.removeItem("goPage"); if (MENU[S.user.role].some(i => i[0] === gp)) go(gp); }
   const ref = localStorage.getItem("paidRef");
   if (ref) { localStorage.removeItem("paidRef"); if (S.user.role === "parent") verifyPaid(ref); }
 }
@@ -164,7 +169,55 @@ function closeModal() { $("#modal").hidden = true; }
 /* ---------- report card (used by parents and staff) ---------- */
 /* Colour templates come from the old TSCS SBA system. The owner picks one in School Settings. */
 const THEMES = { y: "Gold & Blue", b: "Royal Blue", p: "Pink", c: "Classic", g: "Green", v: "Violet", o: "Orange", s: "School colours" };
-const themeOf = t => THEMES[t] ? t : (THEMES[(S.school || {}).reportTheme] ? S.school.reportTheme : "y");
+const tplOn = () => !!((S.school || {}).reportTpl && S.school.reportTpl.img);
+const themeList = () => tplOn() ? Object.assign({}, THEMES, { u: "My own template" }) : THEMES;
+const themeOf = t => { const L = themeList(); return L[t] ? t : (L[(S.school || {}).reportTheme] ? S.school.reportTheme : "y"); };
+
+/* ---------- handwriting + own template ---------- */
+const INKS = { "Caveat": 17, "Dancing Script": 16, "Patrick Hand": 15, "Shadows Into Light": 16, "Indie Flower": 14, "Homemade Apple": 12, "Nanum Pen Script": 18, "Printed (no handwriting)": 13 };
+const INKCOL = { "": "School colour", "#0b2a8f": "Blue ink", "#111111": "Black ink", "#8b0000": "Dark red ink", "#0a5a2e": "Green ink", "#4a1d9a": "Purple ink" };
+function inkNow() { const o = J("sbInk", {}), s = (S.school || {}).ink || {}; return { font: o.font || s.font || "Caveat", color: o.color != null ? o.color : (s.color || "") }; }
+function applyLook() {
+  const r = document.documentElement, k = inkNow(), size = INKS[k.font] || 17, print = k.font.startsWith("Printed");
+  r.style.setProperty("--inkf", print ? "system-ui,sans-serif" : `'${k.font}','Segoe Script','Comic Sans MS',cursive`);
+  r.style.setProperty("--inks", size + "px");
+  if (k.color) r.style.setProperty("--inkc", k.color); else r.style.removeProperty("--inkc");
+  const t = (S.school || {}).reportTpl || {};
+  if (t.img) { r.style.setProperty("--tplimg", `url("${t.img}")`); r.style.setProperty("--tpltop", (t.top == null ? 40 : t.top) + "mm"); r.style.setProperty("--tplside", (t.side == null ? 10 : t.side) + "mm"); }
+  else { r.style.removeProperty("--tplimg"); r.style.removeProperty("--tpltop"); r.style.removeProperty("--tplside"); }
+  r.dataset.tplhd = t.hideHead === false ? "1" : "0";
+  if (!print && document.fonts && document.fonts.load) document.fonts.load(`700 16px "${k.font}"`).then(() => shFit(document)).catch(() => { });
+  shFit(document);
+}
+function setInk(key, v) { const o = J("sbInk", {}); o[key] = v; localStorage.setItem("sbInk", JSON.stringify(o)); applyLook(); }
+const inkSel = () => { const k = inkNow(); return `<select onchange="setInk('font',this.value)">${Object.keys(INKS).map(f => `<option${f === k.font ? " selected" : ""}>${f}</option>`).join("")}</select><select onchange="setInk('color',this.value)">${Object.keys(INKCOL).map(c => `<option value="${c}"${c === k.color ? " selected" : ""}>${INKCOL[c]}</option>`).join("")}</select>`; };
+
+/* ---------- A4 sheet: the card is 748 x 1073 px (= 198 x 284 mm) ---------- */
+const SW = 748, SH = 1073;
+function fitCard(c) {
+  const cells = c.querySelectorAll(".x-tbl td,.x-tbl th"), set = p => cells.forEach(x => { x.style.paddingTop = x.style.paddingBottom = p + "px"; });
+  let p = 13; set(p);
+  while (p > 1 && c.scrollHeight > c.clientHeight + 1) { p--; set(p); }
+}
+function shFit(root) {
+  (root || document).querySelectorAll(".rc2").forEach(c => {
+    fitCard(c); const bx = c.parentElement; if (!bx || !bx.classList.contains("sheetbox")) return;
+    const k = Math.min(1, bx.clientWidth / SW || 1); c.style.transformOrigin = "0 0"; c.style.transform = k < 1 ? `scale(${k})` : "none"; bx.style.height = Math.round(SH * k) + "px";
+  });
+}
+addEventListener("resize", () => shFit(document));
+function filterList(sel, q) { q = q.trim().toLowerCase(); document.querySelectorAll(sel + " > .c").forEach(c => { c.hidden = !!q && !c.textContent.toLowerCase().includes(q); }); }
+function imgShrink(file, maxW, q, type) {
+  return new Promise((ok, no) => {
+    const fr = new FileReader();
+    fr.onerror = no;
+    fr.onload = () => { const img = new Image(); img.onerror = no; img.onload = () => {
+      const k = Math.min(1, maxW / img.width), c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      ok(c.toDataURL(type || "image/jpeg", q || .75)); }; img.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
 function grade(t) { return t >= 80 ? ["A", "Excellent"] : t >= 70 ? ["B", "Very Good"] : t >= 60 ? ["C", "Good"] : t >= 50 ? ["D", "Credit"] : t >= 40 ? ["E", "Pass"] : ["F", "Fail"]; }
 function tot(r) { return (r.subjects || []).reduce((a, s) => a + (+s.classScore || 0) + (+s.examScore || 0), 0); }
 function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
@@ -201,10 +254,59 @@ function reportHTML(r, theme) {
 function showReport(r, theme) {
   window.RP = r;
   const cur = themeOf(theme);
-  const pick = S.user.role === "parent" ? "" : `<select onchange="showReport(RP,this.value)" style="width:auto">${Object.keys(THEMES).map(k => `<option value="${k}"${k === cur ? " selected" : ""}>${THEMES[k]}</option>`).join("")}</select>`;
-  openModal(reportHTML(r, cur) + `<div class="noprint">${pick}<button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`);
+  const pick = S.user.role === "parent" ? "" : `<select onchange="showReport(RP,this.value)" style="width:auto">${Object.keys(themeList()).map(k => `<option value="${k}"${k === cur ? " selected" : ""}>${themeList()[k]}</option>`).join("")}</select>${inkSel()}`;
+  openModal(`<div class="sheetbox">${reportHTML(r, cur)}</div>` + `<div class="noprint">${pick}<button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`); shFit($("#modal"));
 }
 function showReports(list) {
-  openModal(list.map(r => `<div class="pgc">${reportHTML(r)}</div>`).join("") + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>');
+  openModal(list.map(r => `<div class="pgc sheetbox">${reportHTML(r)}</div>`).join("") + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>'); shFit($("#modal"));
 }
 function wa(phone, msg) { let d = String(phone || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "233" + d.slice(1); return "https://wa.me/" + d + "?text=" + encodeURIComponent(msg); }
+
+
+/* ---------- notifications (bell, badge, phone alerts) ---------- */
+function startNotes() {
+  clearInterval(S.nti); S.nseen = null; checkNotes();
+  S.nti = setInterval(() => { if (S.token && !document.hidden) checkNotes(); }, 30000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.token) checkNotes(); });
+  if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.page && S.user) go(e.data.page); });
+}
+async function checkNotes() {
+  try {
+    const d = await api("/notifications"); S.notes = d;
+    const bn = $("#bn"); bn.hidden = !d.unread; bn.textContent = d.unread > 99 ? "99+" : d.unread;
+    const fresh = d.list.filter(n => !n.read && (!S.nseen || new Date(n.createdAt) > S.nseen));
+    if (S.nseen && fresh.length) {
+      toast("🔔 " + fresh[0].title + (fresh.length > 1 ? " (+" + (fresh.length - 1) + " more)" : ""));
+      if (S.page === "momo" || S.page === "pay") load();
+    }
+    if (d.list.length) S.nseen = new Date(d.list[0].createdAt);
+    else if (!S.nseen) S.nseen = new Date();
+  } catch (e) { }
+}
+async function showNotes() {
+  await checkNotes();
+  const d = S.notes || { list: [], unread: 0 };
+  const canPush = "serviceWorker" in navigator && "PushManager" in window && d.push;
+  openModal(`<h3>🔔 Notifications</h3>` + (d.list.length ? d.list.map(n => `<button class="nt${n.read ? "" : " un"}" onclick="openNote('${n._id}','${esc(n.page)}')"><b>${esc(n.title)}</b>${esc(n.body)}<br><small>${new Date(n.createdAt).toLocaleString()}</small></button>`).join("") : '<p class="mu">No notifications yet.</p>')
+    + `<div class="noprint">${canPush ? '<button class="y" onclick="enablePush()">📳 Get alerts on this phone even when the app is closed</button>' : ""}${d.unread ? '<button class="g" onclick="readAllNotes()">Mark all as read</button>' : ""}<button class="g" onclick="closeModal()">Close</button></div>`);
+}
+async function openNote(id, page) {
+  try { await api("/notifications/read", "POST", { id }); } catch (e) { }
+  closeModal(); checkNotes();
+  if (MENU[S.user.role].some(i => i[0] === page)) go(page);
+}
+async function readAllNotes() { try { await api("/notifications/read", "POST", {}); } catch (e) { } closeModal(); checkNotes(); }
+async function enablePush() {
+  try {
+    if (Notification.permission === "denied") return toast("Alerts are blocked in your browser settings for this site");
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return toast("Alerts were not allowed");
+    const reg = await navigator.serviceWorker.ready, k = (await api("/notifications/key")).key;
+    if (!k) return toast("Phone alerts are not set up on the server yet");
+    const b = k.replace(/-/g, "+").replace(/_/g, "/"), raw = atob(b + "=".repeat((4 - b.length % 4) % 4));
+    const key = Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    await api("/notifications/subscribe", "POST", { sub: sub.toJSON() });
+    toast("Phone alerts are on ✅"); closeModal();
+  } catch (e) { toast("Could not turn on alerts: " + e.message); }
+}
