@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const School = require("../models/School");
 const User = require("../models/User");
+const Student = require("../models/Student");
 const auth = require("../middleware/auth");
 
 function sign(u) {
@@ -71,6 +72,20 @@ router.get("/users", auth(["owner", "head"]), async (req, res) => {
   const q = { schoolId: req.user.schoolId };
   if (req.query.role) q.role = req.query.role;
   res.json(await User.find(q).select("-passwordHash").sort({ name: 1 }));
+});
+
+// 4b) Remove a parent, teacher or head (owner removes heads; owner accounts and yourself are protected)
+router.delete("/users/:id", auth(["owner", "head"]), async (req, res) => {
+  try {
+    const u = await User.findOne({ _id: req.params.id, schoolId: req.user.schoolId });
+    if (!u) return res.status(404).json({ error: "Person not found" });
+    if (String(u._id) === String(req.user.id)) return res.status(400).json({ error: "You cannot remove yourself" });
+    if (u.role === "owner") return res.status(403).json({ error: "The owner cannot be removed" });
+    if (u.role === "head" && req.user.role !== "owner") return res.status(403).json({ error: "Only the owner removes a head" });
+    await Student.updateMany({ schoolId: req.user.schoolId, parents: u._id }, { $pull: { parents: u._id } });
+    await u.deleteOne();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // 5) Change own password
