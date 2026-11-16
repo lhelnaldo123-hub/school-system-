@@ -6,6 +6,7 @@ const SchoolSchema = new mongoose.Schema({
   motto: { type: String, default: "" },
   logo: { type: String, default: "" },            // image URL or base64
   invoiceName: { type: String, default: "" },     // name printed on receipts/invoices
+  reportLayout: { type: String, enum: ["d", "m", "e", "b"], default: "d" }, // report card style: d classic, m modern, e elegant, b bold
   reportTheme: { type: String, default: "y" },    // report card colour: y b p c g v o s
   email: { type: String, default: "" },
   website: { type: String, default: "" },
@@ -26,6 +27,7 @@ const SchoolSchema = new mongoose.Schema({
   reportTpl: {
     img: { type: String, default: "" },           // A4 picture (base64)
     top: { type: Number, default: 40 },           // mm from the top where the content starts
+    bot: { type: Number, default: 12 },           // mm from the bottom where the content ends
     side: { type: Number, default: 10 },          // mm left/right margin
     hideHead: { type: Boolean, default: true }    // hide the app's own school header
   },
