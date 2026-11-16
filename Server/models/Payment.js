@@ -8,7 +8,8 @@ const PaymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },      // GHS
   reference: { type: String, required: true, unique: true },
   status: { type: String, enum: ["pending", "review", "success", "failed", "rejected"], default: "pending" },
-  method: { type: String, default: "paystack" }, // "cash" (school records it) or "momo" (parent sends a screenshot)
+  method: { type: String, default: "paystack" }, // "cash" (school records it), "momo" (parent sends proof) or "paystack"
+  network: { type: String, default: "" },        // MoMo network the parent used: MTN, Telecel (Vodafone), AirtelTigo
   txnId: { type: String, default: "" },          // MoMo transaction ID typed by the parent
   payerNumber: { type: String, default: "" },
   proof: { type: String, default: "" },          // screenshot (base64)
