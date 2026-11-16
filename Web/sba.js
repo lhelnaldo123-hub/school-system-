@@ -453,4 +453,4 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
   const hd = document.querySelector("header");
   if (hd) hd.insertAdjacentHTML("beforeend", '<i class="dot" id="sb_dot"></i><button id="sb_ib" hidden onclick="sb.inst()">⬇ Install</button>');
   addEventListener("online", net); addEventListener("offline", net); net();
-})();
+})(); 
