@@ -19,11 +19,11 @@ router.get("/mine", auth(), async (req, res) => {
 
 // Owner changes school name, colours, logo, motto, classes, invoice name, reminder settings
 router.put("/mine", auth(["owner"]), async (req, res) => {
-  const allowed = ["name", "motto", "logo", "invoiceName", "address", "phone", "colors", "reportTheme", "email", "website", "classes", "subjects", "reminder", "momo", "ink"];
+  const allowed = ["name", "motto", "logo", "invoiceName", "address", "phone", "colors", "reportTheme", "reportLayout", "email", "website", "classes", "subjects", "reminder", "momo", "ink"];
   const upd = {};
   allowed.forEach(k => { if (req.body[k] !== undefined) upd[k] = req.body[k]; });
   // report template: change only the parts that were sent (the big picture is sent only when it changes)
-  if (req.body.reportTpl) ["img", "top", "side", "hideHead"].forEach(k => { if (req.body.reportTpl[k] !== undefined) upd["reportTpl." + k] = req.body.reportTpl[k]; });
+  if (req.body.reportTpl) ["img", "top", "side", "bot", "hideHead"].forEach(k => { if (req.body.reportTpl[k] !== undefined) upd["reportTpl." + k] = req.body.reportTpl[k]; });
   res.json(out(await School.findByIdAndUpdate(req.user.schoolId, upd, { new: true })));
 });
 
