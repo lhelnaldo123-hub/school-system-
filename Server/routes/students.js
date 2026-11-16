@@ -26,10 +26,14 @@ router.get("/mine", auth(["parent"]), async (req, res) => {
   res.json(await Student.find({ schoolId: req.user.schoolId, parents: req.user.id, active: true }));
 });
 
-// Link or change parents / class of a student
+// Link or change parents / class of a student. When the class changes the old class is remembered
+// so fees still unpaid from that class keep showing (arrears are not lost).
 router.put("/:id", auth(["owner", "head"]), async (req, res) => {
+  const cur = await Student.findOne({ _id: req.params.id, schoolId: req.user.schoolId });
+  if (!cur) return res.status(404).json({ error: "Student not found" });
   const upd = {};
   ["name", "className", "gender", "parents", "active"].forEach(k => { if (req.body[k] !== undefined) upd[k] = req.body[k]; });
+  if (upd.className && upd.className !== cur.className) upd.classHistory = (cur.classHistory || []).concat([{ className: cur.className, until: new Date() }]);
   res.json(await Student.findOneAndUpdate({ _id: req.params.id, schoolId: req.user.schoolId }, upd, { new: true }));
 });
 
