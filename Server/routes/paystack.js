@@ -6,6 +6,14 @@ const Student = require("../models/Student");
 const User = require("../models/User");
 const auth = require("../middleware/auth");
 const { studentFees } = require("../utils/balance");
+const { notifyUsers, notifyStaff } = require("../utils/notify");
+
+// Tell the head/owner and the parent that an online payment came in
+async function paidAlert(p) {
+  const [st, fee] = await Promise.all([Student.findById(p.studentId).select("name"), Fee.findById(p.feeId).select("title")]);
+  notifyStaff(p.schoolId, "💳 Payment received", "GHS " + p.amount.toFixed(2) + " paid online for " + (st ? st.name : "a student") + (fee ? " (" + fee.title + ")" : "") + ".", "owing");
+  if (p.parentId) notifyUsers(p.schoolId, [p.parentId], "✅ Payment successful", "Your payment of GHS " + p.amount.toFixed(2) + " was received.", "history");
+}
 
 const PS = "https://api.paystack.co";
 const hdr = () => ({ Authorization: "Bearer " + process.env.PAYSTACK_SECRET_KEY, "Content-Type": "application/json" });
@@ -53,7 +61,7 @@ router.get("/verify/:reference", auth(["parent"]), async (req, res) => {
   const r = await fetch(PS + "/transaction/verify/" + p.reference, { headers: hdr() });
   const j = await r.json();
   if (j.status && j.data.status === "success" && j.data.amount === Math.round(p.amount * 100)) {
-    p.status = "success"; p.paidAt = new Date(); await p.save();
+    p.status = "success"; p.paidAt = new Date(); await p.save(); paidAlert(p);
   } else if (j.data && j.data.status === "failed") { p.status = "failed"; await p.save(); }
   res.json({ status: p.status });
 });
@@ -67,7 +75,7 @@ router.post("/webhook", async (req, res) => {
   if (ev.event === "charge.success") {
     const p = await Payment.findOne({ reference: ev.data.reference });
     if (p && p.status !== "success" && ev.data.amount === Math.round(p.amount * 100)) {
-      p.status = "success"; p.paidAt = new Date(); await p.save();
+      p.status = "success"; p.paidAt = new Date(); await p.save(); paidAlert(p);
     }
   }
   res.sendStatus(200);
