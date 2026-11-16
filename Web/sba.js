@@ -43,7 +43,7 @@
   sb.c = v => { X.cls = v; save(); go(S.page); };
   sb.t = v => { X.term = v; save(); go(S.page); };
   sb.y = v => { X.yr = +v || X.yr; save(); go(S.page); };
-  const thSel = () => `<select onchange="sb.th(this.value)">${Object.keys(themeList()).map(k => `<option value="${k}"${k === themeOf(X.th) ? " selected" : ""}>${themeList()[k]}</option>`).join("")}</select>${inkSel()}`;
+  const thSel = () => `<select onchange="sb.th(this.value)">${Object.keys(themeList()).map(k => `<option value="${k}"${k === themeOf(X.th) ? " selected" : ""}>${themeList()[k]}</option>`).join("")}</select>${laySel()}${inkSel()}`;
   sb.th = v => { X.th = v; unf(); if (S.page === "reports") rcv(); else if (S.page === "mock") drawMock(); };
   async function saveMeta(id, patch, quiet) {
     D.meta = D.meta || {};
@@ -185,7 +185,7 @@
     const o = P.o, M = P.M || {}, C = P.C || {}, j = SBC.jhs(P.cls), ss = subsOf(P.cls), b = v => `<b class="ink">${esc(v || "")}</b>`;
     const hasB = [C.tui, C.pta, C.toi, M.arr].some(v => v !== undefined && v !== "" && v !== null), tot = (+M.arr || 0) + (+C.tui || 0) + (+C.pta || 0) + (+C.toi || 0);
     const att = P.opened ? P.present + " out of " + P.opened : (P.hasD ? P.present + " days" : "");
-    return `<div class="rc2 th-${th}">${head()}<div class="x-ban">END OF TERM REPORT</div>
+    return `<div class="rc2 th-${th}${layCls(th)}">${head()}<div class="x-ban">END OF TERM REPORT</div>
 <div class="x-info"><div class="x-grid"><div><small>Name</small>${b(P.s.name.toUpperCase())}</div><div><small>Class</small>${b(P.cls.toUpperCase())}</div><div><small>Term / Year</small>${b(P.term + " / " + P.year)}</div><div><small>No. on roll</small>${b(P.onRoll)}</div><div><small>Vac date</small>${b(C.vacate)}</div><div><small>Open date</small>${b(C.reopen)}</div></div>
 <div class="x-photo">${P.s.photo ? `<img src="${esc(P.s.photo)}" alt="">` : esc(P.s.name.trim().charAt(0).toUpperCase())}</div></div>
 <table class="x-tbl"><thead><tr><th class="l">SUBJECT</th><th>CLASS (50%)</th><th>EXAM (50%)</th><th>TOTAL (100%)</th><th>GRADE</th><th>POS.</th><th class="l">REMARKS</th></tr></thead><tbody>${ss.map(x => { const y = o.sub[x]; return `<tr><td class="sj">${esc(x)}</td><td>${y ? y.c : ""}</td><td>${y ? y.e : ""}</td><td>${y ? y.t : ""}</td><td>${y ? y.g : ""}</td><td>${y ? SBC.ord(y.p) : ""}</td><td class="l">${y ? y.m : ""}</td></tr>`; }).join("")}</tbody></table>
@@ -207,7 +207,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
     const rows = ss.map(x => { const y = o.sub[x], py = pv && pv.sub[x];
       return `<tr><td class="sj">${esc(x)}</td><td class="ink">${y ? y.t : ""}</td><td class="ink">${y ? y.g : ""}</td><td class="ink l">${y ? y.m : ""}</td><td class="ink">${y ? SBC.ord(y.p) : ""}</td><td class="ink">${(st[x] || {}).av ?? ""}</td><td class="ink">${y && py ? tr(y.t, py.t) : "–"}</td></tr>`; }).join("");
     const b = v => `<b class="ink">${esc(v)}</b>`;
-    return `<div class="rc2 mk th-${th}"><div class="x-stamp">MOCK<b>${n}</b></div>${head(sc().motto || "Our vision · Your future")}<div class="x-ban">BECE MOCK EXAMINATION ${n} · RESULT SLIP</div>
+    return `<div class="rc2 mk th-${th}${layCls(th)}"><div class="x-stamp">MOCK<b>${n}</b></div>${head(sc().motto || "Our vision · Your future")}<div class="x-ban">BECE MOCK EXAMINATION ${n} · RESULT SLIP</div>
 <div class="x-info"><div class="x-grid"><div><small>Candidate</small>${b(P.s.name)}</div><div><small>Class</small>${b(P.cls)}</div><div><small>Examination</small>${b("Mock " + n)}</div><div><small>Academic year</small>${b(P.year + " · " + P.term)}</div></div></div>
 <table class="x-tbl"><thead><tr><th class="l">Subject</th><th>Score /100</th><th>Grade (1–9)</th><th class="l">Remark</th><th>Position</th><th>Class average</th><th>Vs Mock ${n > 1 ? n - 1 : "–"}</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="x-sum"><div><small>Total marks</small><b>${o.n ? o.gt + " / " + o.n * 100 : ""}</b></div><div><small>Average</small><b>${o.n ? o.avg + "%" : ""}</b></div><div><small>Aggregate</small><b>${ag ?? ""}</b></div><div><small>Overall position</small><b>${o.pos ? SBC.ord(o.pos) + " of " + P.onRoll : ""}</b></div></div>
