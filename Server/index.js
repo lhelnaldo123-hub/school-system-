@@ -31,7 +31,10 @@ if (fs.existsSync(routesDir)) {
 
 // Start the fee reminder job if the file exists (added in step 4)
 const jobFile = path.join(__dirname, "jobs", "reminder.js");
-if (fs.existsSync(jobFile)) require(jobFile);
+if (fs.existsSync(jobFile)) {
+  const job = require(jobFile);
+  if (job && typeof job.startJobs === "function") job.startJobs();   // starts the daily fee reminders
+}
 
 app.use((err, req, res, next) => {
   console.error(err);
