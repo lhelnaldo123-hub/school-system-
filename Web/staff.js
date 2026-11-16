@@ -256,22 +256,26 @@ PS.settings = async m => {
     <label class="l1">Message ({student} {amount} {school} are filled in automatically)</label><textarea id="st_ms" rows="3">${esc(r.message || "")}</textarea>
     <p class="mu">The sending itself is switched on in the next step.</p></div>
     <button class="y" onclick="saveSettings()">💾 Save settings</button>`;
+  tpZone();
 };
 function lookBlock(s) {
   const t = s.reportTpl || {}, k = s.ink || {}, TL = Object.assign({}, THEMES, { u: "My own template (upload below)" });
   return `<div class="fm"><b>Report card look</b><p class="mu">Parents and staff see report cards in this look. Staff can still try other looks while printing.</p>
     <label class="l1">Template</label><select id="st_th">${Object.keys(TL).map(x => `<option value="${x}"${(s.reportTheme || "y") === x ? " selected" : ""}>${TL[x]}</option>`).join("")}</select>
+    <label class="l1">Card style (layout)</label><select id="st_ly">${Object.keys(LAYOUTS).map(x => `<option value="${x}"${(s.reportLayout || "d") === x ? " selected" : ""}>${LAYOUTS[x]}</option>`).join("")}</select>
     <label class="l1">Handwriting (marks and names on the card)</label>
     <select id="st_if">${Object.keys(INKS).map(f => `<option${f === (k.font || "Caveat") ? " selected" : ""}>${f}</option>`).join("")}</select>
     <select id="st_ic">${Object.keys(INKCOL).map(c => `<option value="${c}"${c === (k.color || "") ? " selected" : ""}>${INKCOL[c]}</option>`).join("")}</select>
     <p class="mu" style="font-family:var(--inkf);font-size:20px;color:var(--inkc,#0d1f8f)">Sample: Ama Mensah 78 Very Good</p>
     <label class="l1">My own template: a picture of your blank A4 report card (JPG or PNG, portrait)</label>
-    <div style="display:flex;gap:10px;align-items:center"><div class="lgpv" id="tp_pv" style="width:80px;height:112px">${t.img ? `<img src="${t.img}">` : "none"}</div>
+    <div style="display:flex;gap:10px;align-items:center"><div class="lgpv" id="tp_pv" style="width:120px;height:168px;position:relative;flex:none">${t.img ? `<img src="${t.img}" style="width:100%;height:100%">` : "none"}<div id="tp_zone" style="position:absolute;border:2px dashed #e11d48;background:rgba(225,29,72,.08);pointer-events:none"></div></div>
     <div><input type="file" accept="image/*" onchange="pickTpl(this)"><button class="r sm" onclick="rmTpl()">Remove picture</button></div></div>
-    <div class="r2"><div><label class="l1">Content starts (mm from top)</label><input id="tp_top" type="number" min="0" max="200" value="${t.top == null ? 40 : t.top}"></div>
-    <div><label class="l1">Left/right margin (mm)</label><input id="tp_side" type="number" min="0" max="40" value="${t.side == null ? 10 : t.side}"></div></div>
+    <div class="r2"><div><label class="l1">Content starts (mm from top)</label><input id="tp_top" type="number" min="0" max="200" value="${t.top == null ? 40 : t.top}" oninput="tpZone()"></div>
+    <div><label class="l1">Content ends (mm from bottom)</label><input id="tp_bot" type="number" min="0" max="200" value="${t.bot == null ? 12 : t.bot}" oninput="tpZone()"></div></div>
+    <div class="r2"><div><label class="l1">Left/right margin (mm)</label><input id="tp_side" type="number" min="0" max="60" value="${t.side == null ? 10 : t.side}" oninput="tpZone()"></div>
+    <div><label class="l1">&nbsp;</label><button class="sm" onclick="tpAuto()">✨ Auto-fit to my picture</button></div></div>
     <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="tp_hd" ${t.hideHead === false ? "" : "checked"}> My picture already has the school name and logo (hide the app's header)</label>
-    <p class="mu">After saving, choose "My own template" in the box above. The names, marks and tables are printed on top of your picture, so leave the middle of your picture empty. Change "Content starts" until it fits under your header.</p></div>`;
+    <p class="mu">Upload your picture and the app measures it and fits the report card into its empty middle (the red dashed box is where the marks and tables go). "My own template" is chosen for you. If the box is not quite right, change the numbers, then Save. Your picture replaces the old one.</p></div>`;
 }
 function momoBlock(s) {
   const m = s.momo || {};
@@ -281,12 +285,31 @@ function momoBlock(s) {
     <label class="l1">Name on the account</label><input id="mo_nm" value="${esc(m.name || "")}">
     <label class="l1">Note to parents (optional)</label><input id="mo_nt" value="${esc(m.note || "")}" placeholder="e.g. Use the student's name as reference"></div>`;
 }
+/* red dashed box on the preview = where the card content will be printed */
+function tpZone() {
+  const z = $("#tp_zone"); if (!z) return;
+  const v = id => +($(id) || {}).value || 0;
+  z.style.left = z.style.right = (v("#tp_side") / 198 * 100) + "%";
+  z.style.top = (v("#tp_top") / 284 * 100) + "%"; z.style.bottom = (v("#tp_bot") / 284 * 100) + "%";
+}
+async function tpAuto(quiet) {
+  const src = S.newTpl || ((S.school || {}).reportTpl || {}).img;
+  if (!src) return toast("Choose your template picture first");
+  const f = await autoFitTpl(src);
+  if (!f) return toast("Could not find an empty middle in that picture. Type the numbers by hand.");
+  $("#tp_top").value = f.top; $("#tp_bot").value = f.bot; $("#tp_side").value = f.side; tpZone();
+  if (!quiet) toast("Fitted. Check the red box, then Save.");
+}
 async function pickTpl(inp) {
   if (!inp.files[0]) return;
-  try { S.newTpl = await imgShrink(inp.files[0], 1240, .82, "image/jpeg"); S.rmTpl = false; $("#tp_pv").innerHTML = `<img src="${S.newTpl}">`; }
-  catch (e) { toast("Could not read that picture"); }
+  try {
+    S.newTpl = await imgShrink(inp.files[0], 1240, .82, "image/jpeg"); S.rmTpl = false;
+    $("#tp_pv").innerHTML = `<img src="${S.newTpl}" style="width:100%;height:100%"><div id="tp_zone" style="position:absolute;border:2px dashed #e11d48;background:rgba(225,29,72,.08);pointer-events:none"></div>`;
+    $("#tp_hd").checked = true; $("#st_th").value = "u";   // use it straight away
+    await tpAuto(false);
+  } catch (e) { toast("Could not read that picture"); }
 }
-function rmTpl() { S.newTpl = ""; S.rmTpl = true; $("#tp_pv").textContent = "none"; }
+function rmTpl() { S.newTpl = ""; S.rmTpl = true; $("#tp_pv").innerHTML = "none"; if ($("#st_th").value === "u") $("#st_th").value = "y"; }
 function pickLogo(inp) {
   const f = inp.files[0]; if (!f) return;
   const fr = new FileReader(), img = new Image();
@@ -304,10 +327,10 @@ async function saveSettings() {
     name: $("#st_n").value.trim(), invoiceName: $("#st_i").value.trim(), motto: $("#st_m").value.trim(),
     address: $("#st_ad").value.trim(), phone: $("#st_ph").value.trim(),
     colors: { primary: $("#st_p").value, accent: $("#st_a").value },
-    reportTheme: $("#st_th").value,
+    reportTheme: $("#st_th").value, reportLayout: $("#st_ly").value,
     ink: { font: $("#st_if").value, color: $("#st_ic").value },
     momo: { network: $("#mo_nw").value.trim(), number: $("#mo_no").value.trim(), name: $("#mo_nm").value.trim(), note: $("#mo_nt").value.trim() },
-    reportTpl: Object.assign({ top: +$("#tp_top").value || 0, side: +$("#tp_side").value || 0, hideHead: $("#tp_hd").checked }, S.rmTpl ? { img: "" } : S.newTpl ? { img: S.newTpl } : {}),
+    reportTpl: Object.assign({ top: +$("#tp_top").value || 0, side: +$("#tp_side").value || 0, bot: +$("#tp_bot").value || 0, hideHead: $("#tp_hd").checked }, S.rmTpl ? { img: "" } : S.newTpl ? { img: S.newTpl } : {}),
     classes: lines("#st_cl"), subjects: lines("#st_sb"),
     reminder: { enabled: $("#st_re").checked, channel: $("#st_ch").value, monthsLimit: +$("#st_ml").value, dayOfMonth: +$("#st_dy").value, message: $("#st_ms").value.trim() }
   };
@@ -316,6 +339,7 @@ async function saveSettings() {
   busy(true);
   try {
     const s = await api("/school/mine", "PUT", body);
+    try { localStorage.removeItem("rcLayout"); } catch (e) { }
     S.school = null; brand(s);
     localStorage.setItem("brand", JSON.stringify(pub(s)));
     localStorage.removeItem("sbInk"); applyLook();
