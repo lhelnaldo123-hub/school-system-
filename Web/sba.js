@@ -204,8 +204,8 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
     const band = ag == null ? "" : ag <= 10 ? "Excellent" : ag <= 15 ? "Very good" : ag <= 24 ? "Good" : ag <= 35 ? "Fair" : "Needs urgent work";
     let prog = "First mock";
     if (n > 1) { if (pv && pv.ag != null && ag != null) prog = ag < pv.ag ? `<span class="up">▲ Improved by ${pv.ag - ag}</span>` : ag > pv.ag ? `<span class="dn">▼ Dropped by ${ag - pv.ag}</span>` : "＝ Same aggregate"; else if (pv && pv.n && o.n) prog = tr(o.avg, pv.avg) + " avg"; else prog = "–"; }
-    const rows = ss.map(x => { const y = o.sub[x], py = pv && pv.sub[x], w = y ? Math.min(100, y.t) : 0;
-      return `<tr><td class="sj">${esc(x)}</td><td class="ink" style="background:linear-gradient(90deg,var(--bar) ${w}%,transparent ${w}%)">${y ? y.t : ""}</td><td class="ink">${y ? y.g : ""}</td><td class="ink l">${y ? y.m : ""}</td><td class="ink">${y ? SBC.ord(y.p) : ""}</td><td class="ink">${(st[x] || {}).av ?? ""}</td><td class="ink">${y && py ? tr(y.t, py.t) : "–"}</td></tr>`; }).join("");
+    const rows = ss.map(x => { const y = o.sub[x], py = pv && pv.sub[x];
+      return `<tr><td class="sj">${esc(x)}</td><td class="ink">${y ? y.t : ""}</td><td class="ink">${y ? y.g : ""}</td><td class="ink l">${y ? y.m : ""}</td><td class="ink">${y ? SBC.ord(y.p) : ""}</td><td class="ink">${(st[x] || {}).av ?? ""}</td><td class="ink">${y && py ? tr(y.t, py.t) : "–"}</td></tr>`; }).join("");
     const b = v => `<b class="ink">${esc(v)}</b>`;
     return `<div class="rc2 mk th-${th}"><div class="x-stamp">MOCK<b>${n}</b></div>${head(sc().motto || "Our vision · Your future")}<div class="x-ban">BECE MOCK EXAMINATION ${n} · RESULT SLIP</div>
 <div class="x-info"><div class="x-grid"><div><small>Candidate</small>${b(P.s.name)}</div><div><small>Class</small>${b(P.cls)}</div><div><small>Examination</small>${b("Mock " + n)}</div><div><small>Academic year</small>${b(P.year + " · " + P.term)}</div></div></div>
