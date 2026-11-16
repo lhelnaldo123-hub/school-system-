@@ -207,7 +207,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
     const rows = ss.map(x => { const y = o.sub[x], py = pv && pv.sub[x], w = y ? Math.min(100, y.t) : 0;
       return `<tr><td class="sj">${esc(x)}</td><td class="ink" style="background:linear-gradient(90deg,var(--bar) ${w}%,transparent ${w}%)">${y ? y.t : ""}</td><td class="ink">${y ? y.g : ""}</td><td class="ink l">${y ? y.m : ""}</td><td class="ink">${y ? SBC.ord(y.p) : ""}</td><td class="ink">${(st[x] || {}).av ?? ""}</td><td class="ink">${y && py ? tr(y.t, py.t) : "–"}</td></tr>`; }).join("");
     const b = v => `<b class="ink">${esc(v)}</b>`;
-    return `<div class="rc2 th-${th}"><div class="x-stamp">MOCK<b>${n}</b></div>${head()}<div class="x-ban">BECE MOCK EXAMINATION ${n} · RESULT SLIP</div>
+    return `<div class="rc2 mk th-${th}"><div class="x-stamp">MOCK<b>${n}</b></div>${head(sc().motto || "Our vision · Your future")}<div class="x-ban">BECE MOCK EXAMINATION ${n} · RESULT SLIP</div>
 <div class="x-info"><div class="x-grid"><div><small>Candidate</small>${b(P.s.name)}</div><div><small>Class</small>${b(P.cls)}</div><div><small>Examination</small>${b("Mock " + n)}</div><div><small>Academic year</small>${b(P.year + " · " + P.term)}</div></div></div>
 <table class="x-tbl"><thead><tr><th class="l">Subject</th><th>Score /100</th><th>Grade (1–9)</th><th class="l">Remark</th><th>Position</th><th>Class average</th><th>Vs Mock ${n > 1 ? n - 1 : "–"}</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="x-sum"><div><small>Total marks</small><b>${o.n ? o.gt + " / " + o.n * 100 : ""}</b></div><div><small>Average</small><b>${o.n ? o.avg + "%" : ""}</b></div><div><small>Aggregate</small><b>${ag ?? ""}</b></div><div><small>Overall position</small><b>${o.pos ? SBC.ord(o.pos) + " of " + P.onRoll : ""}</b></div></div>
@@ -238,7 +238,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
     const inp = (l, k, v, t, c) => `<label class="l1">${l}</label><input data-k="${k}"${c ? ' data-c="1"' : ""} ${t || ""} value="${esc(v || "")}" onchange="sb.mv(this)">`;
     mn.innerHTML = `<h2>Report cards</h2>${bar()}<select onchange="sb.rp(this.value)">${st.map(x => `<option value="${x._id}"${x._id === X.rp ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>${thSel()}
     <div class="r2"><button class="y" onclick="sb.pc(0,'terminal')">🖨 Print / save this card</button><button onclick="sb.pc(1,'terminal')">🖨 Print / save all ${st.length}</button></div>${pubBar("terminal")}
-    <div style="overflow-x:auto"><div style="min-width:640px" id="sb_pv">${card(packFor(X.rp))}</div></div>
+    <div class="sheetbox" id="sb_pv">${card(packFor(X.rp))}</div>
     <div class="fm"><b>Notes for ${esc(s.name)}</b><p class="mu">Conduct, attitude and interest are in the Conduct page. Attendance is in the Attendance page.</p>
     <label class="l1">Class teacher's remarks (leave empty to write it from the average)</label><textarea data-k="tr" rows="2" onchange="sb.mv(this)">${esc(M.tr)}</textarea>
     <select onchange="sb.pk(this.value)"><option value="">— pick a ready-made remark —</option>${LST("tr").map(x => `<option>${esc(x)}</option>`).join("")}</select>
@@ -246,10 +246,10 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
     ${inp("Promoted to (optional, usually Term 3)", "promo", M.promo)}${inp("Arrears for next term bill (GH₵)", "arr", M.arr, 'type="number" inputmode="decimal"')}
     <label class="l1">Student photo (optional)</label><input type="file" accept="image/*" onchange="sb.ph(this)">${s.photo ? '<button class="r sm" onclick="sb.noPh()">Remove photo</button>' : ""}</div>
     <div class="fm"><b>Whole class: ${esc(X.cls)}, ${esc(X.term)}</b>${inp("Days school opened (empty = counted from attendance)", "opened", C.opened, 'type="number" inputmode="numeric"', 1)}${inp("Next term begins (Open date)", "reopen", C.reopen, "", 1)}${inp("Vacation date (Vac date)", "vacate", C.vacate, "", 1)}
-    ${inp("Tuition for next term (GH₵)", "tui", C.tui, 'type="number" inputmode="decimal"', 1)}${inp("P.T.A (GH₵)", "pta", C.pta, 'type="number" inputmode="decimal"', 1)}${inp("Toiletries (GH₵)", "toi", C.toi, 'type="number" inputmode="decimal"', 1)}</div>${sigBox()}`;
+    ${inp("Tuition for next term (GH₵)", "tui", C.tui, 'type="number" inputmode="decimal"', 1)}${inp("P.T.A (GH₵)", "pta", C.pta, 'type="number" inputmode="decimal"', 1)}${inp("Toiletries (GH₵)", "toi", C.toi, 'type="number" inputmode="decimal"', 1)}</div>${sigBox()}`; sh(mn);
   }
   sb.rp = v => { X.rp = v; unf(); S.page === "mock" ? drawMock() : rcv(); };
-  const refresh = () => { if (S.page === "mock") return drawMock(); const e = $("#sb_pv"); if (e) e.innerHTML = card(packFor(X.rp)); };
+  const refresh = () => { if (S.page === "mock") return drawMock(); const e = $("#sb_pv"); if (e) { e.innerHTML = card(packFor(X.rp)); sh(e); } };
   sb.mv = async el => { const cl = el.dataset.c === "1"; await saveMeta(cl ? null : X.rp, { [el.dataset.k]: el.value }); refresh(); };
   sb.pk = async v => { if (v) { await saveMeta(X.rp, { tr: v }); rcv(); } };
   sb.ph = async inp => { if (!inp.files[0]) return; try { await saveMeta(X.rp, { ph: await shrink(inp.files[0], 140, .7) }); rcv(); } catch (e) { toast("Could not read that image"); } };
@@ -263,27 +263,26 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
   }
 
   /* ---------- print / save as PDF (one file, ZIP, or separate files) ---------- */
-  const fillTo = (c, T) => {
-    const e = T - c.offsetHeight; c.style.minHeight = T + "px"; if (e <= 0) return;
-    const rs = c.querySelectorAll(".x-tbl tr"); if (!rs.length) return;
-    const p = Math.min(e * .45 / rs.length / 2, 16);
-    c.querySelectorAll(".x-tbl td,.x-tbl th").forEach(x => { x.style.paddingTop = x.style.paddingBottom = (3 + p) + "px"; });
-  };
+  /* A4 sheet: the card is 748 x 1073 px (= 198 x 284 mm). fitCard stretches the table rows to use the whole page, or squeezes them if there is a lot of content. */
+  const SW = 748, SH = 1073;
+  function fitCard(c) {
+    const cells = c.querySelectorAll(".x-tbl td,.x-tbl th"), set = p => cells.forEach(x => { x.style.paddingTop = x.style.paddingBottom = p + "px"; });
+    let p = 13; set(p);
+    while (p > 1 && c.scrollHeight > c.clientHeight + 1) { p--; set(p); }
+  }
+  function sheet(root) {
+    (root || document).querySelectorAll(".rc2").forEach(c => {
+      fitCard(c); const bx = c.parentElement; if (!bx || !bx.classList.contains("sheetbox")) return;
+      const k = Math.min(1, bx.clientWidth / SW || 1); c.style.transformOrigin = "0 0"; c.style.transform = k < 1 ? `scale(${k})` : "none"; bx.style.height = Math.round(SH * k) + "px";
+    });
+  }
+  const sh = r => { if (!r) return; sheet(r); if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => sheet(r)); };
+  addEventListener("resize", () => sheet(document));
   function printCards(list, land) {
     let st = $("#sbps"); if (!st) { st = document.createElement("style"); st.id = "sbps"; document.head.appendChild(st); }
-    st.textContent = "@page{size:A4 " + (land ? "landscape" : "portrait") + ";margin:8mm}";
-    openModal(list.map(h => `<div class="${land ? "pgs" : "pgc"}">${h}</div>`).join("") + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>');
-    if (!land) {
-      const W = 733, H = 1058;
-      document.querySelectorAll("#modal .pgc").forEach(g => {
-        const c = g.firstElementChild; if (!c) return;
-        c.style.width = "760px"; c.style.maxWidth = "none"; c.style.margin = "0"; c.style.transformOrigin = "0 0";
-        const k = Math.min(W / 760, H / c.offsetHeight);
-        c.classList.add("fit"); fillTo(c, H / k);
-        c.style.marginLeft = ((W - 760 * k) / 2) + "px"; c.style.transform = "scale(" + k + ")";
-        g.style.cssText = "width:" + W + "px;height:" + H + "px;overflow:hidden;position:relative;margin:0 auto 10px";
-      });
-    }
+    st.textContent = "@page{size:A4 " + (land ? "landscape" : "portrait") + ";margin:" + (land ? "8mm" : "6mm") + "}";
+    openModal(list.map(h => `<div class="${land ? "pgs" : "pgc sheetbox"}">${h}</div>`).join("") + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>');
+    if (!land) sh($("#modal"));
     setTimeout(() => window.print(), 350);
   }
   let PM = [], PK = "terminal";
@@ -304,7 +303,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
   const fnm = x => String(x).replace(/[\\\/:*?"<>|]+/g, "").trim().replace(/\s+/g, "_") || "student";
   async function cardCanvas(html) {
     const h = document.createElement("div"); h.className = "pdfx"; h.innerHTML = html; document.body.appendChild(h);
-    const c0 = h.firstElementChild; if (c0) { c0.classList.add("fit"); fillTo(c0, Math.round(794 * 285 / 198)); }
+    const c0 = h.firstElementChild; if (c0) fitCard(c0);
     try {
       h.querySelectorAll("svg rect").forEach(r => { const f = getComputedStyle(r).fill; r.removeAttribute("style"); r.setAttribute("fill", f); });
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -395,7 +394,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
       fitPv();
     } else {
       if (!st.find(s => s._id === X.rp)) X.rp = st[0]._id;
-      mn.innerHTML = mhead() + `<select onchange="sb.rp(this.value)">${st.map(x => `<option value="${x._id}"${x._id === X.rp ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>${thSel()}<div class="r2"><button class="y" onclick="sb.pc(0,'${type}')">🖨 Print / save this slip</button><button onclick="sb.pc(1,'${type}')">🖨 Print / save all ${st.length}</button></div>${pubBar(type)}<div style="overflow-x:auto"><div style="min-width:640px">${mcard(packFor(X.rp, type), X.th)}</div></div>${sigBox()}`;
+      mn.innerHTML = mhead() + `<select onchange="sb.rp(this.value)">${st.map(x => `<option value="${x._id}"${x._id === X.rp ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>${thSel()}<div class="r2"><button class="y" onclick="sb.pc(0,'${type}')">🖨 Print / save this slip</button><button onclick="sb.pc(1,'${type}')">🖨 Print / save all ${st.length}</button></div>${pubBar(type)}<div class="sheetbox">${mcard(packFor(X.rp, type), X.th)}</div>${sigBox()}`; sh(mn);
     }
   }
   function mockF() {
@@ -425,7 +424,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
       <div class="mu">Total ${p.o.gt} · Average ${p.o.avg}${p.o.pos ? " · Position " + SBC.ord(p.o.pos) + " of " + p.onRoll : ""}</div></div><button class="sm" onclick="sb.pv(${i})">View</button></div>`).join("")
       : '<p class="mu">No report cards have been published yet. You will see them here when the school releases them.</p>');
   };
-  sb.pv = i => { const p = SBP[i]; openModal(`<div style="overflow-x:auto"><div style="min-width:640px">${p.n ? mcard(p) : card(p)}</div></div><div class="noprint"><button onclick="sb.prp(${i})">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`); };
+  sb.pv = i => { const p = SBP[i]; openModal(`<div class="sheetbox">${p.n ? mcard(p) : card(p)}</div><div class="noprint"><button onclick="sb.prp(${i})">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`); sh($("#modal")); };
   sb.prp = i => { const p = SBP[i]; printCards([p.n ? mcard(p) : card(p)], false); };
 
   /* ---------- small extras on the pages the school app already had ---------- */
