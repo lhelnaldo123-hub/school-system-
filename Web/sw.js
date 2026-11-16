@@ -1,5 +1,5 @@
 /* School App - offline support. Change VERSION when you upload new files. */
-const VERSION = "school-app-v3";
+const VERSION = "school-app-v4";
 
 self.addEventListener("install", e => { self.skipWaiting(); });
 
