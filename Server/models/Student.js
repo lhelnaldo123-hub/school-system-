@@ -8,6 +8,7 @@ const StudentSchema = new mongoose.Schema({
   photo: { type: String, default: "" },
   parents: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // one or both parents
   active: { type: Boolean, default: true },
+  classHistory: [{ _id: false, className: String, until: Date }],   // old classes, so unpaid fees follow the student
   createdAt: { type: Date, default: Date.now }
 });
 
