@@ -10,7 +10,25 @@ const SchoolSchema = new mongoose.Schema({
   email: { type: String, default: "" },
   website: { type: String, default: "" },
   signature: { type: String, default: "" },       // head teacher's signature picture
-  lists: { type: Object, default: {} },           // ready-made conduct / attitude / interest / remark lists
+  lists: { type: Object, default: {} },
+  // Mobile money number parents pay to (manual MoMo payments with screenshot proof)
+  momo: {
+    network: { type: String, default: "MTN MoMo" },
+    number: { type: String, default: "" },
+    name: { type: String, default: "" },
+    note: { type: String, default: "" }
+  },
+  // The school's own report card picture + handwriting style
+  reportTpl: {
+    img: { type: String, default: "" },           // A4 picture (base64)
+    top: { type: Number, default: 40 },           // mm from the top where the content starts
+    side: { type: Number, default: 10 },          // mm left/right margin
+    hideHead: { type: Boolean, default: true }    // hide the app's own school header
+  },
+  ink: {
+    font: { type: String, default: "Caveat" },
+    color: { type: String, default: "" }
+  },           // ready-made conduct / attitude / interest / remark lists
   address: { type: String, default: "" },
   phone: { type: String, default: "" },
   colors: {
