@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:#f3f5fa;color:#1b2340}
+.w{max-width:900px;margin:0 auto;padding:16px}h1{font-size:20px}h2{font-size:16px;margin:22px 0 8px}
+.c{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px #0001;margin-bottom:14px}
+input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #ccd;}input{width:100%;margin:4px 0}
+button{background:#0b2a8f;color:#fff;border:0;cursor:pointer}button.s{background:#e9ecf6;color:#1b2340;padding:5px 9px;font-size:13px}
+.r{display:flex;gap:8px}.r>*{flex:1}table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:7px 6px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}.tw{overflow-x:auto}
+.ok{color:#0a7a35;font-weight:600}.no{color:#b36b00;font-weight:600}.er{color:#c00}code{font-size:15px;font-weight:700;letter-spacing:1px}
+.new{background:#eefbf1;border:1px solid #9bd7ac}
+</style></head><body><div class="w">
+<div id="login" class="c" style="max-width:340px;margin:60px auto"><h1>🔒 Admin</h1>
+<input id="pw" type="password" placeholder="Admin password" onkeydown="if(event.key==='Enter')go()">
+<button onclick="go()" style="width:100%;margin-top:6px">Sign in</button><p class="er" id="le"></p></div>
+
+<div id="main" hidden>
+<div style="display:flex;justify-content:space-between;align-items:center"><h1>🔑 Registration codes</h1><button class="s" onclick="out()">Sign out</button></div>
+<div class="c"><b>Make a new code</b>
+<input id="note" placeholder="Who is it for? (e.g. Mr Mensah - Bright Stars School)">
+<div class="r"><input id="cnt" type="number" min="1" max="20" value="1" title="How many"><input id="days" type="number" min="0" value="0" title="Expires after days (0 = never)" placeholder="Expires in days (0 = never)"></div>
+<small>How many · Expires after days (0 = never)</small><br>
+<button onclick="mk()" style="margin-top:8px">Generate</button><p class="er" id="me"></p><div id="fresh"></div></div>
+
+<h2>Codes</h2><div class="c tw"><table id="ct"></table></div>
+<h2>Registered schools</h2><div class="c tw"><table id="st"></table></div>
+</div></div>
+<script src="config.js"></script>
+<script>
+const $=s=>document.querySelector(s);let T=sessionStorage.getItem("adm")||"";
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fd=d=>d?new Date(d).toLocaleDateString():"-";
+// Link people open to register: the main app page with ?invite=CODE
+const base=location.href.replace(/admin\.html.*$/,"");
+const link=c=>base+"index.html?invite="+c;
+async function call(p,m,b){const r=await fetch(API+"/admin"+p,{method:m||"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+T},body:b?JSON.stringify(b):undefined});
+ const j=await r.json().catch(()=>({}));if(r.status===401&&T){out();}if(!r.ok)throw new Error(j.error||"Server problem");return j;}
+async function go(){try{const j=await call("/login","POST",{password:$("#pw").value});T=j.token;sessionStorage.setItem("adm",T);show();}catch(e){$("#le").textContent=e.message}}
+function out(){T="";sessionStorage.removeItem("adm");$("#main").hidden=true;$("#login").hidden=false;$("#pw").value=""}
+function cp(t,b){navigator.clipboard.writeText(t).then(()=>{const o=b.textContent;b.textContent="Copied ✓";setTimeout(()=>b.textContent=o,1200)})}
+async function mk(){try{$("#me").textContent="";const j=await call("/codes","POST",{note:$("#note").value,count:$("#cnt").value,days:$("#days").value});
+ $("#fresh").innerHTML=j.map(c=>`<div class="c new"><code>${esc(c.code)}</code> <button class="s" onclick="cp('${esc(c.code)}',this)">Copy code</button> <button class="s" onclick="cp('${esc(link(c.code))}',this)">Copy link</button><br><small>${esc(link(c.code))}</small></div>`).join("");
+ $("#note").value="";load();}catch(e){$("#me").textContent=e.message}}
+async function del(id){if(!confirm("Cancel this code?"))return;await call("/codes/"+id,"DELETE");load()}
+async function load(){const j=await call("/overview");
+ $("#ct").innerHTML="<tr><th>Code</th><th>For</th><th>Status</th><th>Created</th><th></th></tr>"+(j.codes.map(c=>{
+  const exp=c.expiresAt&&new Date(c.expiresAt)<new Date();
+  return `<tr><td><code>${esc(c.code)}</code></td><td>${esc(c.note)||"-"}</td><td>${c.used?`<span class="ok">Used ${fd(c.usedAt)}</span><br>${esc(c.school)}`:exp?'<span class="er">Expired</span>':'<span class="no">Not used</span>'+(c.expiresAt?"<br><small>until "+fd(c.expiresAt)+"</small>":"")}</td><td>${fd(c.createdAt)}</td>
+  <td>${c.used||exp?"":`<button class="s" onclick="cp('${esc(c.code)}',this)">Code</button> <button class="s" onclick="cp('${esc(link(c.code))}',this)">Link</button> <button class="s" onclick="del('${c.id}')">✕</button>`}</td></tr>`}).join("")||"<tr><td>No codes yet</td></tr>");
+ $("#st").innerHTML="<tr><th>School</th><th>Owner</th><th>Students</th><th>Users</th><th>Joined</th></tr>"+(j.schools.map(s=>`<tr><td><b>${esc(s.name)}</b><br><small>code: ${esc(s.code)}</small></td><td>${esc(s.owner&&s.owner.name)}<br><small>${esc(s.owner&&s.owner.email)} ${esc(s.owner&&s.owner.phone)}</small></td><td>${s.students}</td><td>${s.users}</td><td>${fd(s.createdAt)}</td></tr>`).join("")||"<tr><td>No schools yet</td></tr>");}
+async function show(){try{await load();$("#login").hidden=true;$("#main").hidden=false}catch(e){out();$("#le").textContent=e.message}}
+if(T)show();
+</script></body></html>
