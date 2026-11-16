@@ -19,7 +19,7 @@
   display:flex;flex-direction:column;justify-content:space-between;padding:18px 20px;color:#1b2133;font-size:12px;
   background:#fff;border:1px solid var(--bd);border-top:6px solid var(--pa);outline:0;border-radius:2px}
 .rc2>*{position:relative;z-index:1;flex:none}
-.rc2 .ink{font-family:'Caveat','Segoe Script','Bradley Hand','Comic Sans MS',cursive;color:var(--ink);font-weight:700;font-size:17px;line-height:1.15}
+.rc2 .ink{font-family:var(--inkf,'Caveat','Segoe Script','Bradley Hand','Comic Sans MS',cursive);color:var(--inkc,var(--ink));font-weight:700;font-size:var(--inks,17px);line-height:1.15}
 
 .rc2 .x-head{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bd);padding-bottom:8px}
 .rc2 .x-logo{width:64px;height:64px;flex:none;background:#fff;display:grid;place-items:center;overflow:hidden}
@@ -125,3 +125,16 @@
   .sheetbox{height:284mm!important;overflow:hidden}
   .rc2{width:198mm!important;height:284mm!important;max-width:none!important;margin:0!important;transform:none!important}
 }
+
+/* ---- the school's own uploaded template: their A4 picture is the page, content is printed on top ---- */
+.th-u{--pa:var(--b);--ac:var(--y);--rt:#fff;--bg1:rgba(255,255,255,.75);--bg2:#fff;--bd:#555;--tx:#222;--ink:#0d1f8f;--cell:rgba(255,255,255,.6);--ln:#555;--hd:var(--b)}
+.rc2.th-u,.rc2.th-u.mk{background:#fff var(--tplimg,none) center/100% 100% no-repeat;border:0;border-radius:0;padding:var(--tpltop,40mm) var(--tplside,10mm) 12mm}
+.rc2.th-u.mk>*:not(.x-head):not(.x-stamp){margin-left:0;margin-right:0}
+.th-u .x-head{background:none;border-bottom:0;padding-right:0;color:#111}
+.th-u .x-hm h2{color:var(--pa)}.th-u .x-hm p,.th-u.mk .x-hm p{color:#333;opacity:1}
+html[data-tplhd="0"] .th-u .x-head{display:none}
+.th-u .x-tbl td,.th-u .x-tbl tbody tr:nth-child(even) td{background:var(--cell)}
+.th-u .x-photo,.th-u .x-gt td{background:rgba(255,255,255,.75)}
+.th-u .x-ban,.th-u.mk .x-ban{background:rgba(255,255,255,.7)}
+.th-u .x-sum div{background:rgba(255,255,255,.7)}
+.th-u>.x-stamp{top:calc(var(--tpltop,40mm) - 22mm)}
