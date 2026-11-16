@@ -63,7 +63,7 @@ async function boot() {
   if (S.token) { try { brand(await api("/school/mine")); } catch (e) { } }
   await wait;
   $("#sp").classList.add("out");
-  if (S.token && S.user) startApp(); else showAuth("login");
+  if (S.token && S.user) startApp(); else showAuth(new URLSearchParams(location.search).get("invite") ? "reg" : "login");
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => { });
 }
 
@@ -80,6 +80,7 @@ function showAuth(mode, msg) {
     <button class="go" onclick="doLogin()">Sign in</button><p class="er" id="a_er">${esc(msg || "")}</p>
     <p class="mu">New school? <a href="#" onclick="showAuth('reg');return false">Register your school</a></p>`;
   else form = `<h2>Register your school</h2>
+    <label class="l1">Registration code (given to you by the system provider)</label><input id="r_ic" placeholder="XXXX-XXXX" autocapitalize="characters" value="${esc(new URLSearchParams(location.search).get("invite") || "")}">
     <input id="r_sn" placeholder="School name" oninput="if(!window.cd)$('#r_cd').value=slug(this.value)">
     <label class="l1">School code (staff and parents type this to sign in)</label><input id="r_cd" placeholder="e.g. tscs" autocapitalize="none" oninput="window.cd=1;this.value=slug(this.value)">
     <input id="r_on" placeholder="Owner's full name"><input id="r_em" type="email" placeholder="Owner's email" autocapitalize="none">
@@ -87,7 +88,32 @@ function showAuth(mode, msg) {
     <div class="r2"><div><label class="l1">Main colour</label><input id="r_p" type="color" value="#0b2a8f"></div><div><label class="l1">Accent colour</label><input id="r_a" type="color" value="#f5b800"></div></div>
     <button class="go" onclick="doRegister()">Create school</button><p class="er" id="a_er">${esc(msg || "")}</p>
     <p class="mu"><a href="#" onclick="showAuth('login');return false">← Back to sign in</a></p>`;
-  $("#auth").innerHTML = `<div class="lgo sm">${logoHTML()}</div><h1>${esc(s ? s.name : "School App")}</h1><div class="pill">${mode === "login" ? "SIGN IN" : "NEW SCHOOL"}</div><div class="lb">${form}</div>`;
+  $("#auth").innerHTML = `<div class="lgo sm" onclick="secretTap()">${logoHTML()}</div><h1>${esc(s ? s.name : "School App")}</h1><div class="pill">${mode === "login" ? "SIGN IN" : "NEW SCHOOL"}</div><div class="lb">${form}</div>`;
+}
+// Private owner door: tap the logo 5 times -> password box -> admin screen (nothing is loaded before the password is right)
+let _st = 0, _stt;
+function secretTap() { _st++; clearTimeout(_stt); _stt = setTimeout(() => _st = 0, 2000); if (_st >= 5) { _st = 0; ownerDoor(); } }
+function ownerDoor() {
+  if ($("#od")) return;
+  const d = document.createElement("div"); d.id = "od";
+  d.style.cssText = "position:fixed;inset:0;background:#000a;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+  d.innerHTML = `<div style="background:#fff;border-radius:12px;padding:16px;width:100%;max-width:300px"><input id="od_pw" type="password" placeholder="Password" style="width:100%;padding:10px;box-sizing:border-box"><button id="od_go" style="width:100%;margin-top:8px;padding:10px">Enter</button><p id="od_er" style="color:#c00;margin:6px 0 0;font-size:13px"></p></div>`;
+  d.onclick = e => { if (e.target === d) d.remove(); };
+  document.body.appendChild(d); $("#od_pw").focus();
+  const go = async () => {
+    try {
+      const L = await fetch(API + "/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: $("#od_pw").value }) });
+      const j = await L.json().catch(() => ({})); if (!L.ok) throw new Error(j.error || "Wrong password");
+      const P = await fetch(API + "/admin/panel", { headers: { Authorization: "Bearer " + j.token } });
+      if (!P.ok) throw new Error("Could not open");
+      const html = (await P.text()).replace("__API__", () => API);
+      document.body.innerHTML = "";
+      const f = document.createElement("iframe");
+      f.style.cssText = "position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;z-index:9999";
+      f.srcdoc = html; document.body.appendChild(f);
+    } catch (e) { $("#od_er").textContent = e.message; }
+  };
+  $("#od_go").onclick = go; $("#od_pw").onkeydown = e => { if (e.key === "Enter") go(); };
 }
 function tgPw() { const i = $("#a_pw"); i.type = i.type === "password" ? "text" : "password"; }
 async function doLogin() {
@@ -101,7 +127,7 @@ async function doRegister() {
   const g = id => $("#" + id).value.trim();
   busy(true);
   try {
-    const j = await api("/auth/register-school", "POST", { schoolName: g("r_sn"), code: g("r_cd"), ownerName: g("r_on"), email: g("r_em"), phone: g("r_ph"), password: $("#r_pw").value, primary: $("#r_p").value, accent: $("#r_a").value });
+    const j = await api("/auth/register-school", "POST", { schoolName: g("r_sn"), code: g("r_cd"), ownerName: g("r_on"), email: g("r_em"), phone: g("r_ph"), password: $("#r_pw").value, inviteCode: g("r_ic"), primary: $("#r_p").value, accent: $("#r_a").value });
     finish(j, j.school.code);
   } catch (e) { $("#a_er").textContent = e.message; }
   busy(false);
