@@ -17,7 +17,7 @@
   const fm = n => "GH₵" + (+n || 0).toFixed(2);
   const reps = t => (D.reports[t] = D.reports[t] || {});
   const rpt = (t, id) => reps(t)[id] || (reps(t)[id] = { studentId: id, type: t, subjects: [] });
-  const ent = (r, n) => { let e = r.subjects.find(x => x.name === n); if (!e) { e = { name: n }; r.subjects.pushFit(e); } return e; };
+  const ent = (r, n) => { let e = r.subjects.find(x => x.name === n); if (!e) { e = { name: n }; r.subjects.push(e); } return e; };
   const meta = id => ((D.meta.students = D.meta.students || {})[id]) || {};
   const packFor = (id, type) => SBC.pack(D, D.students.find(s => s._id === id), type || "terminal");
   const ABR = { "English Language": "ENG", "English": "ENG", "Mathematics": "MATHS", "Science": "SCI", "Integrated Science": "INT.SCI", "Social Studies": "SOC.STD", "Computing": "COMP", "Creative Arts": "C.ARTS", "French": "FRE", "Twi": "TWI", "Ghanaian Language": "GH.LANG", "Career Technology": "CAR.TECH", "History": "HIST" };
