@@ -12,11 +12,12 @@ PS.home = async m => {
       <div class="r2"><button class="y" onclick="go('scores')">✏️ Enter scores</button><button onclick="go('students')">👦 Students</button></div>`;
     return;
   }
-  const [st, ow] = await Promise.all([api("/students"), api("/fees/owing")]);
+  const [st, ow, mo] = await Promise.all([api("/students"), api("/fees/owing"), api("/fees/momo/review").catch(() => [])]);
   const owed = ow.reduce((a, x) => a + x.owed, 0);
   m.innerHTML = `<h2>${esc(S.school.name)}</h2><div class="st"><div><b>${st.length}</b><small>Students</small></div><div><b>${ow.length}</b><small>Owing fees</small></div><div><b>${money(owed)}</b><small>Total owed</small></div></div>
     <div class="r2"><button onclick="go('students')">👦 Students</button><button onclick="go('fees')">💰 Fees</button></div>
     <div class="r2"><button class="y" onclick="go('owing')">⏰ Who owes</button><button onclick="go('reports')">📄 Report cards</button></div>
+    <button class="${mo.length ? "y" : "g"}" style="width:100%" onclick="go('momo')">📲 MoMo payments to confirm (${mo.length})</button>
     ${S.user.role === "owner" ? '<button class="g" onclick="go(\'settings\')">🎨 School settings and fee reminders</button>' : ""}`;
 };
 
@@ -29,12 +30,23 @@ PS.students = async m => {
   if (staffHead()) await parentsList();
   window.SL = list;
   const sh = staffHead();
-  const rows = list.length ? list.map((s, i) => `<div class="c"><div class="g1"><b>${esc(s.name)}</b><div class="mu">${s.parents.map(p => esc(p.name)).join(", ") || "No parent linked"}</div></div>${sh ? `<button class="sm g" onclick="editStudent(${i})">Edit</button>` : ""}</div>`).join("") : '<p class="mu">No students in this class yet.</p>';
+  const rows = stRows(list, false); S.stRows = rows; S.stList = list; S.allSt = null;
   m.innerHTML = `<h2>Students</h2><select onchange="S.cls=this.value;go('students')">${opts(cl, cur)}</select>
+    <input id="q_st" placeholder="🔍 Search any student or parent (all classes)" oninput="stSearch(this.value)">
     <div class="fm"><b>Add student to ${esc(cur)}</b><input id="n_nm" placeholder="Full name"><select id="n_gd"><option>Male</option><option>Female</option></select>
     ${sh ? `<label class="l1">Parent 1</label><select id="n_p1">${parOpts()}</select><label class="l1">Parent 2 (optional)</label><select id="n_p2">${parOpts()}</select>` : ""}
-    <button onclick="addStudent()">Add student</button></div>${rows}`;
+    <button onclick="addStudent()">Add student</button></div><div id="stl">${rows}</div>`;
 };
+const stRows = (list, all) => list.length ? list.map((s, i) => `<div class="c"><div class="g1"><b>${esc(s.name)}</b>${all ? ` <span class="mu">${esc(s.className)}</span>` : ""}<div class="mu">${s.parents.map(p => esc(p.name)).join(", ") || "No parent linked"}</div></div>${staffHead() ? `<button class="sm g" onclick="editStudent(${i})">Edit</button>` : ""}</div>`).join("") : '<p class="mu">No students found.</p>';
+async function stSearch(q) {
+  q = q.trim().toLowerCase();
+  if (!q) { window.SL = S.stList; $("#stl").innerHTML = S.stRows; return; }
+  try {
+    if (!S.allSt) S.allSt = await api("/students");
+    const l = S.allSt.filter(x => (x.name + " " + x.className + " " + x.parents.map(p => p.name + " " + (p.phone || "")).join(" ")).toLowerCase().includes(q));
+    window.SL = l; $("#stl").innerHTML = stRows(l, true);
+  } catch (e) { toast(e.message); }
+}
 async function addStudent() {
   const name = $("#n_nm").value.trim();
   if (!name) return toast("Write the student's name");
@@ -115,9 +127,9 @@ PS.owing = async m => {
   const sum = d.reduce((a, x) => a + x.owed, 0);
   const msg = x => `Dear parent, ${x.name} owes ${money(x.owed)} at ${S.school.name}. Please pay through the school app. Thank you.`;
   m.innerHTML = `<h2>Who owes</h2><p class="mu">${d.length} student(s) owe ${money(sum)}. Tap WhatsApp to remind a parent. Automatic reminders come in the next step.</p>`
-    + (d.length ? d.map((x, i) => `<div class="c" style="display:block"><div style="display:flex"><div class="g1"><b>${esc(x.name)}</b> <span class="mu">${esc(x.className)}</span></div><b class="dn">${money(x.owed)}</b></div>
+    + '<input placeholder="🔍 Search student or parent" oninput="filterList(\'#owl\',this.value)"><div id="owl">' + (d.length ? d.map((x, i) => `<div class="c" style="display:block"><div style="display:flex"><div class="g1"><b>${esc(x.name)}</b> <span class="mu">${esc(x.className)}</span></div><b class="dn">${money(x.owed)}</b></div>
     ${(x.parents || []).map(p => `<div class="mu">${esc(p.name)} ${esc(p.phone || "")}</div>${p.phone ? `<a href="tel:${esc(p.phone)}"><button class="sm g">📞 Call</button></a> <a href="${wa(p.phone, msg(x))}" target="_blank"><button class="sm y">WhatsApp</button></a>` : ""}`).join("")}
-    <div><button class="sm" onclick="cashModal(${i})">Record cash payment</button></div></div>`).join("") : '<p class="up">Nobody owes. 🎉</p>');
+    <div><button class="sm" onclick="cashModal(${i})">Record cash payment</button></div></div>`).join("") : '<p class="up">Nobody owes. 🎉</p>') + '</div>';
 };
 async function cashModal(i) {
   const x = OW[i];
@@ -225,7 +237,7 @@ async function publishAll(flag) {
 /* ---------- school settings (owner) ---------- */
 PS.settings = async m => {
   const s = S.school, r = s.reminder || {};
-  S.newLogo = "";
+  S.newLogo = ""; S.newTpl = ""; S.rmTpl = false;
   m.innerHTML = `<h2>School settings</h2>
     <div class="fm"><b>School look</b><label class="l1">School name (loading page and menu)</label><input id="st_n" value="${esc(s.name)}">
     <label class="l1">Name on receipts and report cards</label><input id="st_i" value="${esc(s.invoiceName || s.name)}">
@@ -233,7 +245,8 @@ PS.settings = async m => {
     <label class="l1">Address</label><input id="st_ad" value="${esc(s.address || "")}"><label class="l1">Phone</label><input id="st_ph" value="${esc(s.phone || "")}">
     <label class="l1">Logo</label><div style="display:flex;gap:10px;align-items:center"><div class="lgpv" id="lg_pv">${logoHTML()}</div><input type="file" accept="image/*" onchange="pickLogo(this)"></div>
     <div class="r2"><div><label class="l1">Main colour</label><input id="st_p" type="color" value="${esc((s.colors || {}).primary || "#0b2a8f")}"></div><div><label class="l1">Accent colour</label><input id="st_a" type="color" value="${esc((s.colors || {}).accent || "#f5b800")}"></div></div></div>
-    <div class="fm"><b>Report card colour</b><p class="mu">Parents and staff see report cards in this colour.</p><select id="st_th">${Object.keys(THEMES).map(k => `<option value="${k}"${(s.reportTheme || "y") === k ? " selected" : ""}>${THEMES[k]}</option>`).join("")}</select></div>
+    ${lookBlock(s)}
+    ${momoBlock(s)}
     <div class="fm"><b>Classes</b><p class="mu">One per line, from the lowest class to the highest.</p><textarea id="st_cl" rows="8">${esc((s.classes || []).join("\n"))}</textarea></div>
     <div class="fm"><b>Subjects</b><p class="mu">One per line. These appear on report cards.</p><textarea id="st_sb" rows="8">${esc((s.subjects || []).join("\n"))}</textarea></div>
     <div class="fm"><b>Fee reminders to parents</b><label class="chk1" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="st_re" ${r.enabled ? "checked" : ""}> Send reminders automatically</label>
@@ -244,6 +257,36 @@ PS.settings = async m => {
     <p class="mu">The sending itself is switched on in the next step.</p></div>
     <button class="y" onclick="saveSettings()">💾 Save settings</button>`;
 };
+function lookBlock(s) {
+  const t = s.reportTpl || {}, k = s.ink || {}, TL = Object.assign({}, THEMES, { u: "My own template (upload below)" });
+  return `<div class="fm"><b>Report card look</b><p class="mu">Parents and staff see report cards in this look. Staff can still try other looks while printing.</p>
+    <label class="l1">Template</label><select id="st_th">${Object.keys(TL).map(x => `<option value="${x}"${(s.reportTheme || "y") === x ? " selected" : ""}>${TL[x]}</option>`).join("")}</select>
+    <label class="l1">Handwriting (marks and names on the card)</label>
+    <select id="st_if">${Object.keys(INKS).map(f => `<option${f === (k.font || "Caveat") ? " selected" : ""}>${f}</option>`).join("")}</select>
+    <select id="st_ic">${Object.keys(INKCOL).map(c => `<option value="${c}"${c === (k.color || "") ? " selected" : ""}>${INKCOL[c]}</option>`).join("")}</select>
+    <p class="mu" style="font-family:var(--inkf);font-size:20px;color:var(--inkc,#0d1f8f)">Sample: Ama Mensah 78 Very Good</p>
+    <label class="l1">My own template: a picture of your blank A4 report card (JPG or PNG, portrait)</label>
+    <div style="display:flex;gap:10px;align-items:center"><div class="lgpv" id="tp_pv" style="width:80px;height:112px">${t.img ? `<img src="${t.img}">` : "none"}</div>
+    <div><input type="file" accept="image/*" onchange="pickTpl(this)"><button class="r sm" onclick="rmTpl()">Remove picture</button></div></div>
+    <div class="r2"><div><label class="l1">Content starts (mm from top)</label><input id="tp_top" type="number" min="0" max="200" value="${t.top == null ? 40 : t.top}"></div>
+    <div><label class="l1">Left/right margin (mm)</label><input id="tp_side" type="number" min="0" max="40" value="${t.side == null ? 10 : t.side}"></div></div>
+    <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="tp_hd" ${t.hideHead === false ? "" : "checked"}> My picture already has the school name and logo (hide the app's header)</label>
+    <p class="mu">After saving, choose "My own template" in the box above. The names, marks and tables are printed on top of your picture, so leave the middle of your picture empty. Change "Content starts" until it fits under your header.</p></div>`;
+}
+function momoBlock(s) {
+  const m = s.momo || {};
+  return `<div class="fm"><b>Mobile money (parents pay and send a screenshot)</b><p class="mu">Parents see this number, pay with their phone, then send the transaction ID and screenshot. You confirm each one under "MoMo payments".</p>
+    <label class="l1">Network</label><input id="mo_nw" value="${esc(m.network || "MTN MoMo")}" placeholder="MTN MoMo / Telecel Cash / AirtelTigo Money">
+    <label class="l1">MoMo number</label><input id="mo_no" value="${esc(m.number || "")}" placeholder="0244000000" inputmode="tel">
+    <label class="l1">Name on the account</label><input id="mo_nm" value="${esc(m.name || "")}">
+    <label class="l1">Note to parents (optional)</label><input id="mo_nt" value="${esc(m.note || "")}" placeholder="e.g. Use the student's name as reference"></div>`;
+}
+async function pickTpl(inp) {
+  if (!inp.files[0]) return;
+  try { S.newTpl = await imgShrink(inp.files[0], 1240, .82, "image/jpeg"); S.rmTpl = false; $("#tp_pv").innerHTML = `<img src="${S.newTpl}">`; }
+  catch (e) { toast("Could not read that picture"); }
+}
+function rmTpl() { S.newTpl = ""; S.rmTpl = true; $("#tp_pv").textContent = "none"; }
 function pickLogo(inp) {
   const f = inp.files[0]; if (!f) return;
   const fr = new FileReader(), img = new Image();
@@ -262,6 +305,9 @@ async function saveSettings() {
     address: $("#st_ad").value.trim(), phone: $("#st_ph").value.trim(),
     colors: { primary: $("#st_p").value, accent: $("#st_a").value },
     reportTheme: $("#st_th").value,
+    ink: { font: $("#st_if").value, color: $("#st_ic").value },
+    momo: { network: $("#mo_nw").value.trim(), number: $("#mo_no").value.trim(), name: $("#mo_nm").value.trim(), note: $("#mo_nt").value.trim() },
+    reportTpl: Object.assign({ top: +$("#tp_top").value || 0, side: +$("#tp_side").value || 0, hideHead: $("#tp_hd").checked }, S.rmTpl ? { img: "" } : S.newTpl ? { img: S.newTpl } : {}),
     classes: lines("#st_cl"), subjects: lines("#st_sb"),
     reminder: { enabled: $("#st_re").checked, channel: $("#st_ch").value, monthsLimit: +$("#st_ml").value, dayOfMonth: +$("#st_dy").value, message: $("#st_ms").value.trim() }
   };
@@ -272,7 +318,44 @@ async function saveSettings() {
     const s = await api("/school/mine", "PUT", body);
     S.school = null; brand(s);
     localStorage.setItem("brand", JSON.stringify(pub(s)));
+    localStorage.removeItem("sbInk"); applyLook();
     buildMenu(); toast("Saved ✅"); go("settings");
   } catch (e) { toast(e.message); }
+  busy(false);
+}
+
+
+/* ---------- MoMo payments to confirm ---------- */
+PS.momo = async m => {
+  const d = await api("/fees/momo/review");
+  window.MO = d;
+  m.innerHTML = `<h2>MoMo payments to confirm</h2><p class="mu">Open each screenshot and compare it with your MoMo SMS or statement (amount, transaction ID, time). Approve only what you can see in your own MoMo account.</p>`
+    + (d.length ? d.map((p, i) => `<div class="c" style="display:block"><div style="display:flex;gap:8px"><div class="g1"><b>${esc(p.studentId && p.studentId.name)}</b> <span class="mu">${esc(p.studentId && p.studentId.className)}</span>
+      <div class="mu">${esc(p.feeId && p.feeId.title)}</div></div><b>${money(p.amount)}</b></div>
+      <div class="mu">Transaction ID: <b>${esc(p.txnId)}</b>${p.payerNumber ? " · Paid from " + esc(p.payerNumber) : ""}</div>
+      <div class="mu">${esc(p.parentId && p.parentId.name)} ${esc(p.parentId && p.parentId.phone || "")} · ${new Date(p.createdAt).toLocaleString()}</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px"><button class="sm g" onclick="momoProof(${i})">🖼 See screenshot</button>
+      <input id="mo_a${i}" type="number" value="${p.amount}" style="width:100px;margin:0"><button class="sm" onclick="momoOk(${i})">✅ Approve</button><button class="sm r" onclick="momoNo(${i})">Reject</button></div></div>`).join("")
+    : '<p class="up">Nothing waiting. 🎉</p>');
+};
+async function momoProof(i) {
+  busy(true);
+  try { const j = await api("/fees/momo/proof/" + MO[i]._id); openModal(`<img src="${j.proof}" style="max-width:100%;display:block;margin:auto"><div class="noprint"><button class="g" onclick="closeModal()">Close</button></div>`); }
+  catch (e) { toast(e.message); }
+  busy(false);
+}
+async function momoOk(i) {
+  if (!confirm("Approve " + money(+$("#mo_a" + i).value) + " for " + MO[i].studentId.name + "? Only do this if the money is in your MoMo account.")) return;
+  busy(true);
+  try { await api("/fees/momo/" + MO[i]._id + "/approve", "POST", { amount: +$("#mo_a" + i).value }); toast("Payment confirmed ✅"); go("momo"); }
+  catch (e) { toast(e.message); }
+  busy(false);
+}
+async function momoNo(i) {
+  const reason = prompt("Why are you rejecting this? The parent will see it.", "I could not find this payment in our MoMo account");
+  if (reason === null) return;
+  busy(true);
+  try { await api("/fees/momo/" + MO[i]._id + "/reject", "POST", { reason }); toast("Rejected"); go("momo"); }
+  catch (e) { toast(e.message); }
   busy(false);
 }
