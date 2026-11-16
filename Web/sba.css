@@ -40,8 +40,8 @@
 #sbpm{position:fixed;inset:0;z-index:60;background:#0006;display:flex;align-items:flex-end}
 .sbsh{background:#fff;width:100%;max-width:560px;margin:auto auto 0;border-radius:18px 18px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 .sbsh button{width:100%;padding:13px;margin:5px 0}
-.pdfx{position:fixed;left:0;top:0;width:794px;background:#fff;z-index:150}
-.pdfx .rc2{margin:0!important;max-width:none!important;font-size:11.5px}
+.pdfx{position:fixed;left:0;top:0;width:748px;background:#fff;z-index:150}
+.pdfx .rc2{margin:0!important;max-width:none!important;font-size:12px}
 .rc2.fit{display:flex;flex-direction:column;justify-content:space-between}
 @media print{
   .pgs{break-after:page;page-break-after:always;overflow:visible}.pgs:last-child{break-after:auto;page-break-after:auto}
