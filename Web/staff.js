@@ -62,6 +62,10 @@ async function removeStudent(id) {
 }
 
 /* ---------- parents / teachers / heads ---------- */
+async function removeUser(id, name) {
+  if (!confirm("Remove " + name + "? They will no longer be able to sign in.")) return;
+  try { await api("/auth/users/" + id, "DELETE"); S.parents = null; toast("Removed"); go("people"); } catch (e) { toast(e.message); }
+}
 PS.people = async m => {
   const owner = S.user.role === "owner", role = S.pr || "parent";
   const list = await api("/auth/users?role=" + role);
@@ -72,7 +76,7 @@ PS.people = async m => {
     <input id="u_em" type="email" placeholder="Email (optional for parents)" autocapitalize="none"><input id="u_pw" placeholder="Password (empty = 123456)">
     ${role === "teacher" ? `<label class="l1">Classes this teacher handles</label><div class="chk">${S.school.classes.map(c => `<label><input type="checkbox" class="u_cl" value="${esc(c)}">${esc(c)}</label>`).join("")}</div>` : ""}
     <button onclick="addUser('${role}')">Add ${word}</button></div>`
-    + (list.length ? list.map(u => `<div class="c"><div class="g1"><b>${esc(u.name)}</b><div class="mu">${esc(u.phone || "")} ${u.email && !/@school-parent\.com$/.test(u.email) ? esc(u.email) : ""}</div>${u.classes && u.classes.length ? `<div class="mu">${esc(u.classes.join(", "))}</div>` : ""}</div></div>`).join("") : '<p class="mu">Nobody added yet.</p>');
+    + (list.length ? list.map(u => `<div class="c"><div class="g1"><b>${esc(u.name)}</b><div class="mu">${esc(u.phone || "")} ${u.email && !/@school-parent\.com$/.test(u.email) ? esc(u.email) : ""}</div>${u.classes && u.classes.length ? `<div class="mu">${esc(u.classes.join(", "))}</div>` : ""}</div><button class="r sm" onclick="removeUser('${u._id}','${esc(u.name).replace(/'/g, "")}')">Remove</button></div>`).join("") : '<p class="mu">Nobody added yet.</p>');
 };
 async function addUser(role) {
   const classes = [...document.querySelectorAll(".u_cl:checked")].map(x => x.value);
