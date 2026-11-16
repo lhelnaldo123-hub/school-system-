@@ -388,10 +388,10 @@ function installExtras() {
       name: $("#st_n").value.trim(), invoiceName: $("#st_i").value.trim(), motto: $("#st_m").value.trim(),
       address: $("#st_ad").value.trim(), phone: $("#st_ph").value.trim(),
       colors: { primary: $("#st_p").value, accent: $("#st_a").value },
-      reportTheme: $("#st_th").value,
+      reportTheme: $("#st_th").value, reportLayout: $("#st_ly").value,
       ink: { font: $("#st_if").value, color: $("#st_ic").value },
       momo: { network: $("#mo_nw").value.trim(), number: $("#mo_no").value.trim(), name: $("#mo_nm").value.trim(), note: $("#mo_nt").value.trim(), network2: $("#mo_nw2").value.trim(), number2: $("#mo_no2").value.trim(), name2: $("#mo_nm2").value.trim() },
-      reportTpl: Object.assign({ top: +$("#tp_top").value || 0, side: +$("#tp_side").value || 0, hideHead: $("#tp_hd").checked }, S.rmTpl ? { img: "" } : S.newTpl ? { img: S.newTpl } : {}),
+      reportTpl: Object.assign({ top: +$("#tp_top").value || 0, side: +$("#tp_side").value || 0, bot: +$("#tp_bot").value || 0, hideHead: $("#tp_hd").checked }, S.rmTpl ? { img: "" } : S.newTpl ? { img: S.newTpl } : {}),
       classes: lines("#st_cl"), subjects: lines("#st_sb"),
       reminder: { enabled: $("#st_re").checked, channel: $("#st_ch").value, monthsLimit: +$("#st_ml").value, dayOfMonth: +$("#st_dy").value, message: $("#st_ms").value.trim() }
     };
@@ -400,6 +400,7 @@ function installExtras() {
     busy(true);
     try {
       const s = await api("/school/mine", "PUT", body);
+      try { localStorage.removeItem("rcLayout"); } catch (e) { }
       S.school = null; brand(s);
       localStorage.setItem("brand", JSON.stringify(pub(s)));
       localStorage.removeItem("sbInk"); applyLook();
