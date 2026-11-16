@@ -1,0 +1,51 @@
+/* sba.css - extra styles for the SBA pages. Loaded after report.css. */
+.bar{height:9px;background:#e6ebf8;border-radius:6px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--y),#ffd75e)}
+.ac{display:flex;gap:5px}.ac button{padding:8px 14px;margin:0}.ac button.off{background:#e6ebf8;color:#667089}.ac button.pp1{background:#1e9e58}.ac button.aa1{background:#c0392b}
+.sbv{background:var(--yl);font-weight:700}.sbr{font-size:11px;color:#445}.gx{font-size:11px;color:#667089;min-height:13px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#999;flex:none}.dot.on{background:#3ddc84}
+.rc2,.nb{--bar:var(--bg1)}
+/* report card extras */
+.rc2 .sb-h4{margin:0 0 4px;text-align:center;font-size:12px;font-weight:600}
+.rc2 .sb-bl{margin-top:12px}.rc2 .sb-bl .x-gt{font-size:11px}
+.rc2 .sb-ft{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:12px;font-size:11px;line-height:1.5}
+.rc2 .sb-hs{display:flex;align-items:flex-end;gap:6px;white-space:nowrap}
+.rc2 .sb-dl{display:inline-block;width:110px;border-bottom:1px dotted #333;height:24px}
+.sb-sig{max-height:44px;max-width:150px;mix-blend-mode:multiply}
+.rc2 .x-sign .sb-sig{position:absolute;left:50%;bottom:100%;transform:translateX(-50%)}
+.rc2 .sb-nt{font-size:10.5px;color:var(--tx);margin:8px 0 0;line-height:1.35}
+.rc2 .x-sum b{font-size:13px}
+.rc2 .x-tbl td.ink{font-size:16px}
+.rc2 .up,.nb .up{color:#0a7d3b}.rc2 .dn,.nb .dn{color:#c0392b}
+/* notice-board sheet: one A4 landscape page */
+.pv{width:100%;overflow:hidden;margin-top:8px}.pv>div{width:281mm}
+.nb{width:281mm;height:188mm;display:flex;flex-direction:column;background:#fff;color:#111;border:1.2mm solid var(--pa);border-radius:3mm;overflow:hidden}
+.nb-h{display:flex;align-items:center;gap:4mm;background:linear-gradient(100deg,var(--pa),var(--pa) 70%,var(--ac));color:#fff;padding:2.5mm 5mm;border-bottom:1.5mm solid var(--ac)}
+.nb-lg{width:15mm;height:15mm;border-radius:3mm;background:#fff;display:grid;place-items:center;overflow:hidden;color:var(--pa);flex:none}.nb-lg img{width:13mm;max-height:13mm;object-fit:contain}
+.nb-t{flex:1}.nb-1{font-weight:900;font-size:6.5mm;letter-spacing:.6mm;line-height:1}.nb-2{font-size:3.8mm;font-weight:800;color:#ffe08a;margin-top:1mm;letter-spacing:.4mm}
+.nb-3{text-align:right;font-weight:800;font-size:3.6mm;line-height:1.25}
+.nb-b{flex:1;min-height:0;padding:1.5mm 2mm 0;overflow:hidden}
+.nb-tb{width:100%;border-collapse:collapse;table-layout:fixed;font-size:var(--fs)}
+.nb-tb th{background:var(--pa);color:#fff;font-size:calc(var(--fs)*.85);padding:.6mm 0;text-align:center;border:.2mm solid var(--pa);overflow:hidden;white-space:nowrap}
+.nb-tb td{height:var(--rh);line-height:1;padding:0 .6mm;text-align:center;border:.2mm solid #cbd3e8;overflow:hidden;white-space:nowrap}
+.nb-tb tbody tr:nth-child(even){background:var(--bg2)}
+.nb-tb td.nb-n{text-align:left;font-weight:700;text-overflow:ellipsis}
+.nb-tb sup{font-size:.6em;line-height:0;color:var(--pa);margin-left:.2mm;vertical-align:top}
+.nb-p{font-weight:900;color:var(--pa)}.nb-tt{font-weight:900;background:var(--bg1)}.nb-ag{font-weight:900;color:var(--pa);background:var(--bg1)}
+.nb-tb tbody tr.top1{background:#ffe27a}.nb-tb tbody tr.top2{background:#e5e9f2}.nb-tb tbody tr.top3{background:#f4d3b2}
+.nb-tb tr.nb-f td{background:var(--pa);color:#fff;font-weight:800}.nb-tb tr.nb-f td:first-child{text-align:left}
+.nb-ft{display:flex;justify-content:space-between;gap:4mm;font-size:2.4mm;color:#445;padding:1mm 3mm;border-top:.4mm solid var(--ac)}
+.sbph{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--y);margin-bottom:6px;color:var(--b)}.sbph span{font-size:12px;font-weight:700}
+.pgs{overflow-x:auto}
+/* save-as-PDF menu */
+#sbpm{position:fixed;inset:0;z-index:60;background:#0006;display:flex;align-items:flex-end}
+.sbsh{background:#fff;width:100%;max-width:560px;margin:auto auto 0;border-radius:18px 18px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.sbsh button{width:100%;padding:13px;margin:5px 0}
+.pdfx{position:fixed;left:0;top:0;width:794px;background:#fff;z-index:150}
+.pdfx .rc2{margin:0!important;max-width:none!important;font-size:11.5px}
+.rc2.fit{display:flex;flex-direction:column;justify-content:space-between}
+@media print{
+  .pgs{break-after:page;page-break-after:always;overflow:visible}.pgs:last-child{break-after:auto;page-break-after:auto}
+  .pgs .t{font-size:9.5px;margin-bottom:10px}.pgs .t td,.pgs .t th{padding:2px}.pgs .t tr{page-break-inside:avoid}.pgs thead{display:table-header-group}.pgs .t td.pn{position:static}
+  .pgs .nb{box-shadow:none}.pgc .rc2{font-size:12px}
+  #sbpm{display:none!important}
+}
