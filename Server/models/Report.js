@@ -1,41 +1,24 @@
 const mongoose = require("mongoose");
 
-// A report holds one student's results for a term or mock assessment.
-// Legacy classScore/examScore fields remain supported by the existing portal.
+// One report per student per term/year/type. Teachers add one subject at a time.
+// type: "terminal", or "mock1" ... "mock7" (SBA mock exams). Old "mock" reports are kept too.
 const ReportSchema = new mongoose.Schema({
   schoolId: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
   className: { type: String, required: true },
-  term: { type: String, required: true },
+  term: { type: String, required: true },          // "Term 1", "Term 2", "Term 3"
   year: { type: Number, required: true },
-  type: { type: String, enum: ["terminal", "mock"], default: "terminal" },
+  type: { type: String, default: "terminal" },
   subjects: [{
     _id: false,
-    name: { type: String, required: true },
-    classScore: { type: Number, min: 0, max: 50 },
-    examScore: { type: Number, min: 0, max: 50 },
-    // Optional SBA breakdown: three tests /20, project /10, group work /10.
-    tests: { type: [Number], default: undefined },
-    project: { type: Number, min: 0, max: 10 },
-    groupWork: { type: Number, min: 0, max: 10 },
-    rawExamScore: { type: Number, min: 0, max: 100 },
-    grade: { type: String, default: "" },
-    remark: { type: String, default: "" }
+    name: String,
+    classScore: Number,                            // out of 50 (worked out from the SBA boxes)
+    examScore: Number,                             // out of 50
+    raw: [Number],                                 // SBA boxes: test1/20, test2/20, test3/20, project/10, group/10, exam/100
+    score: Number                                  // mock exam score out of 100
   }],
   remark: { type: String, default: "" },
-  headRemark: { type: String, default: "" },
-  conduct: { type: String, default: "" },
-  attitude: { type: String, default: "" },
-  interest: { type: String, default: "" },
-  attendance: {
-    opened: { type: Number, min: 0 },
-    present: { type: Number, min: 0 },
-    absent: { type: Number, min: 0 },
-    late: { type: Number, min: 0 },
-    excused: { type: Number, min: 0 }
-  },
-  promotedTo: { type: String, default: "" },
-  published: { type: Boolean, default: false },
+  published: { type: Boolean, default: false },    // parents see it only when published
   teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   updatedAt: { type: Date, default: Date.now }
 });
