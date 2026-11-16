@@ -17,7 +17,7 @@
   const fm = n => "GH₵" + (+n || 0).toFixed(2);
   const reps = t => (D.reports[t] = D.reports[t] || {});
   const rpt = (t, id) => reps(t)[id] || (reps(t)[id] = { studentId: id, type: t, subjects: [] });
-  const ent = (r, n) => { let e = r.subjects.find(x => x.name === n); if (!e) { e = { name: n }; r.subjects.push(e); } return e; };
+  const ent = (r, n) => { let e = r.subjects.find(x => x.name === n); if (!e) { e = { name: n }; r.subjects.pushFit(e); } return e; };
   const meta = id => ((D.meta.students = D.meta.students || {})[id]) || {};
   const packFor = (id, type) => SBC.pack(D, D.students.find(s => s._id === id), type || "terminal");
   const ABR = { "English Language": "ENG", "English": "ENG", "Mathematics": "MATHS", "Science": "SCI", "Integrated Science": "INT.SCI", "Social Studies": "SOC.STD", "Computing": "COMP", "Creative Arts": "C.ARTS", "French": "FRE", "Twi": "TWI", "Ghanaian Language": "GH.LANG", "Career Technology": "CAR.TECH", "History": "HIST" };
@@ -43,7 +43,7 @@
   sb.c = v => { X.cls = v; save(); go(S.page); };
   sb.t = v => { X.term = v; save(); go(S.page); };
   sb.y = v => { X.yr = +v || X.yr; save(); go(S.page); };
-  const thSel = () => `<select onchange="sb.th(this.value)">${Object.keys(THEMES).map(k => `<option value="${k}"${k === themeOf(X.th) ? " selected" : ""}>${THEMES[k]}</option>`).join("")}</select>`;
+  const thSel = () => `<select onchange="sb.th(this.value)">${Object.keys(themeList()).map(k => `<option value="${k}"${k === themeOf(X.th) ? " selected" : ""}>${themeList()[k]}</option>`).join("")}</select>${inkSel()}`;
   sb.th = v => { X.th = v; unf(); if (S.page === "reports") rcv(); else if (S.page === "mock") drawMock(); };
   async function saveMeta(id, patch, quiet) {
     D.meta = D.meta || {};
@@ -246,10 +246,10 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
     ${inp("Promoted to (optional, usually Term 3)", "promo", M.promo)}${inp("Arrears for next term bill (GH₵)", "arr", M.arr, 'type="number" inputmode="decimal"')}
     <label class="l1">Student photo (optional)</label><input type="file" accept="image/*" onchange="sb.ph(this)">${s.photo ? '<button class="r sm" onclick="sb.noPh()">Remove photo</button>' : ""}</div>
     <div class="fm"><b>Whole class: ${esc(X.cls)}, ${esc(X.term)}</b>${inp("Days school opened (empty = counted from attendance)", "opened", C.opened, 'type="number" inputmode="numeric"', 1)}${inp("Next term begins (Open date)", "reopen", C.reopen, "", 1)}${inp("Vacation date (Vac date)", "vacate", C.vacate, "", 1)}
-    ${inp("Tuition for next term (GH₵)", "tui", C.tui, 'type="number" inputmode="decimal"', 1)}${inp("P.T.A (GH₵)", "pta", C.pta, 'type="number" inputmode="decimal"', 1)}${inp("Toiletries (GH₵)", "toi", C.toi, 'type="number" inputmode="decimal"', 1)}</div>${sigBox()}`; sh(mn);
+    ${inp("Tuition for next term (GH₵)", "tui", C.tui, 'type="number" inputmode="decimal"', 1)}${inp("P.T.A (GH₵)", "pta", C.pta, 'type="number" inputmode="decimal"', 1)}${inp("Toiletries (GH₵)", "toi", C.toi, 'type="number" inputmode="decimal"', 1)}</div>${sigBox()}`; shFit(mn);
   }
   sb.rp = v => { X.rp = v; unf(); S.page === "mock" ? drawMock() : rcv(); };
-  const refresh = () => { if (S.page === "mock") return drawMock(); const e = $("#sb_pv"); if (e) { e.innerHTML = card(packFor(X.rp)); sh(e); } };
+  const refresh = () => { if (S.page === "mock") return drawMock(); const e = $("#sb_pv"); if (e) { e.innerHTML = card(packFor(X.rp)); shFit(e); } };
   sb.mv = async el => { const cl = el.dataset.c === "1"; await saveMeta(cl ? null : X.rp, { [el.dataset.k]: el.value }); refresh(); };
   sb.pk = async v => { if (v) { await saveMeta(X.rp, { tr: v }); rcv(); } };
   sb.ph = async inp => { if (!inp.files[0]) return; try { await saveMeta(X.rp, { ph: await shrink(inp.files[0], 140, .7) }); rcv(); } catch (e) { toast("Could not read that image"); } };
@@ -263,26 +263,11 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
   }
 
   /* ---------- print / save as PDF (one file, ZIP, or separate files) ---------- */
-  /* A4 sheet: the card is 748 x 1073 px (= 198 x 284 mm). fitCard stretches the table rows to use the whole page, or squeezes them if there is a lot of content. */
-  const SW = 748, SH = 1073;
-  function fitCard(c) {
-    const cells = c.querySelectorAll(".x-tbl td,.x-tbl th"), set = p => cells.forEach(x => { x.style.paddingTop = x.style.paddingBottom = p + "px"; });
-    let p = 13; set(p);
-    while (p > 1 && c.scrollHeight > c.clientHeight + 1) { p--; set(p); }
-  }
-  function sheet(root) {
-    (root || document).querySelectorAll(".rc2").forEach(c => {
-      fitCard(c); const bx = c.parentElement; if (!bx || !bx.classList.contains("sheetbox")) return;
-      const k = Math.min(1, bx.clientWidth / SW || 1); c.style.transformOrigin = "0 0"; c.style.transform = k < 1 ? `scale(${k})` : "none"; bx.style.height = Math.round(SH * k) + "px";
-    });
-  }
-  const sh = r => { if (!r) return; sheet(r); if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => sheet(r)); };
-  addEventListener("resize", () => sheet(document));
   function printCards(list, land) {
     let st = $("#sbps"); if (!st) { st = document.createElement("style"); st.id = "sbps"; document.head.appendChild(st); }
     st.textContent = "@page{size:A4 " + (land ? "landscape" : "portrait") + ";margin:" + (land ? "8mm" : "6mm") + "}";
     openModal(list.map(h => `<div class="${land ? "pgs" : "pgc sheetbox"}">${h}</div>`).join("") + '<div class="noprint"><button onclick="window.print()">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>');
-    if (!land) sh($("#modal"));
+    if (!land) shFit($("#modal"));
     setTimeout(() => window.print(), 350);
   }
   let PM = [], PK = "terminal";
@@ -394,7 +379,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
       fitPv();
     } else {
       if (!st.find(s => s._id === X.rp)) X.rp = st[0]._id;
-      mn.innerHTML = mhead() + `<select onchange="sb.rp(this.value)">${st.map(x => `<option value="${x._id}"${x._id === X.rp ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>${thSel()}<div class="r2"><button class="y" onclick="sb.pc(0,'${type}')">🖨 Print / save this slip</button><button onclick="sb.pc(1,'${type}')">🖨 Print / save all ${st.length}</button></div>${pubBar(type)}<div class="sheetbox">${mcard(packFor(X.rp, type), X.th)}</div>${sigBox()}`; sh(mn);
+      mn.innerHTML = mhead() + `<select onchange="sb.rp(this.value)">${st.map(x => `<option value="${x._id}"${x._id === X.rp ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>${thSel()}<div class="r2"><button class="y" onclick="sb.pc(0,'${type}')">🖨 Print / save this slip</button><button onclick="sb.pc(1,'${type}')">🖨 Print / save all ${st.length}</button></div>${pubBar(type)}<div class="sheetbox">${mcard(packFor(X.rp, type), X.th)}</div>${sigBox()}`; shFit(mn);
     }
   }
   function mockF() {
@@ -424,7 +409,7 @@ ${hasB ? `<div class="sb-bl"><h4 class="sb-h4">Student Bill for Next Term</h4><t
       <div class="mu">Total ${p.o.gt} · Average ${p.o.avg}${p.o.pos ? " · Position " + SBC.ord(p.o.pos) + " of " + p.onRoll : ""}</div></div><button class="sm" onclick="sb.pv(${i})">View</button></div>`).join("")
       : '<p class="mu">No report cards have been published yet. You will see them here when the school releases them.</p>');
   };
-  sb.pv = i => { const p = SBP[i]; openModal(`<div class="sheetbox">${p.n ? mcard(p) : card(p)}</div><div class="noprint"><button onclick="sb.prp(${i})">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`); sh($("#modal")); };
+  sb.pv = i => { const p = SBP[i]; openModal(`<div class="sheetbox">${p.n ? mcard(p) : card(p)}</div><div class="noprint"><button onclick="sb.prp(${i})">🖨 Print / Save PDF</button><button class="g" onclick="closeModal()">Close</button></div>`); shFit($("#modal")); };
   sb.prp = i => { const p = SBP[i]; printCards([p.n ? mcard(p) : card(p)], false); };
 
   /* ---------- small extras on the pages the school app already had ---------- */
