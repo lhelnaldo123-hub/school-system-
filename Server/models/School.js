@@ -16,7 +16,11 @@ const SchoolSchema = new mongoose.Schema({
     network: { type: String, default: "MTN MoMo" },
     number: { type: String, default: "" },
     name: { type: String, default: "" },
-    note: { type: String, default: "" }
+    note: { type: String, default: "" },
+    // optional second number (for example Telecel/Vodafone Cash)
+    network2: { type: String, default: "" },
+    number2: { type: String, default: "" },
+    name2: { type: String, default: "" }
   },
   // The school's own report card picture + handwriting style
   reportTpl: {
