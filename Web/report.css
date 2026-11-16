@@ -13,26 +13,29 @@
 /* the school's own two colours (set in School Settings) */
 .th-s{--pa:var(--b);--ac:var(--y);--rt:#ffffff;--bg1:var(--yl);--bg2:#ffffff;--bd:var(--b);--tx:var(--d);--ink:var(--b);--cell:#ffffff;--ln:var(--b2)}
 
-/* ---- the card ---- */
-.rc2{position:relative;overflow:hidden;max-width:760px;margin:8px auto;padding:20px 18px;color:#1b2133;font-size:12px;
-  background:linear-gradient(var(--bg1),var(--bg2) 30%,var(--bg1));
-  border:2px solid var(--bd);outline:2px solid var(--ac);outline-offset:-8px;border-radius:8px}
-.rc2>*{position:relative;z-index:1}
+/* ---- the card (clean white paper look; every colour template still works) ---- */
+/* the card is one A4 sheet (198 x 284 mm = A4 minus 6 mm printer margin), the same on screen, in print and in PDF */
+.rc2{position:relative;overflow:hidden;width:748px;height:1073px;max-width:none;margin:0 auto;box-sizing:border-box;
+  display:flex;flex-direction:column;justify-content:space-between;padding:18px 20px;color:#1b2133;font-size:12px;
+  background:#fff;border:1px solid var(--bd);border-top:6px solid var(--pa);outline:0;border-radius:2px}
+.rc2>*{position:relative;z-index:1;flex:none}
 .rc2 .ink{font-family:'Caveat','Segoe Script','Bradley Hand','Comic Sans MS',cursive;color:var(--ink);font-weight:700;font-size:17px;line-height:1.15}
 
-.rc2 .x-head{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--pa);padding-bottom:8px}
-.rc2 .x-logo{width:70px;height:70px;flex:none;border-radius:14px;background:#fff;border:2px solid var(--pa);display:grid;place-items:center;overflow:hidden}
-.rc2 .x-logo img{width:58px;max-height:58px;object-fit:contain}
+.rc2 .x-head{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bd);padding-bottom:8px}
+.rc2 .x-logo{width:64px;height:64px;flex:none;background:#fff;display:grid;place-items:center;overflow:hidden}
+.rc2 .x-logo img{width:60px;max-height:60px;object-fit:contain}
 .rc2 .x-logo b{color:var(--pa);font-size:18px}
 .rc2 .x-hm{min-width:0}
-.rc2 .x-hm h2{margin:0;font-size:20px;line-height:1.1;letter-spacing:1px;font-weight:900;text-transform:uppercase;color:var(--ttl,var(--pa))}
-.rc2 .x-hm p{margin:2px 0 0;font-size:11px;color:var(--tx)}
+.rc2 .x-hm h2{margin:0 0 2px;font-size:19px;line-height:1.1;letter-spacing:.3px;font-weight:900;text-transform:uppercase;color:var(--ttl,var(--pa))}
+.rc2 .x-hm p{margin:1px 0 0;font-size:9.5px;color:var(--tx)}
 .rc2 .x-hm p.x-mt{font-style:italic;letter-spacing:2px;text-transform:uppercase;font-size:10px}
 
-.rc2 .x-ban{margin:10px 0;padding:6px;border-radius:4px;background:var(--hd,var(--pa));color:var(--rt);text-align:center;font-weight:900;letter-spacing:4px;font-size:12px}
+/* banner: a slim title line in the template colour */
+.rc2 .x-ban{margin:10px 0 8px;padding:3px 0;background:none;color:var(--pa);text-align:center;font-weight:900;letter-spacing:3px;font-size:11px;
+  border-top:2px solid var(--ac);border-bottom:2px solid var(--ac)}
 
 .rc2 .x-info{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
-.rc2 .x-grid{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.rc2 .x-grid{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:5px 14px}
 .rc2 .x-grid div{border-bottom:1px dotted var(--ln);padding-bottom:1px;min-width:0;overflow-wrap:anywhere}
 .rc2 .x-grid small,.rc2 .x-sum small,.rc2 .x-lb{color:var(--tx);font-weight:700;text-transform:uppercase;font-size:10px}
 .rc2 .x-grid small{margin-right:5px}
@@ -40,70 +43,85 @@
 .rc2 .x-photo img{width:100%;height:100%;object-fit:cover}
 
 .rc2 .x-tbl{width:100%;border-collapse:collapse}
-.rc2 .x-tbl th{background:var(--hd,var(--pa));color:#fff;border:1px solid var(--hd,var(--pa));padding:5px 4px;font-size:11px}
-.rc2 .x-tbl td{border:1px solid var(--bd);background:var(--cell);padding:2px 5px;text-align:center}
-.rc2 .x-tbl td.sj{text-align:left;font-weight:700}
+.rc2 .x-tbl th{background:var(--hd,var(--pa));color:#fff;border:1px solid var(--hd,var(--pa));padding:6px 4px;font-size:10.5px}
+.rc2 .x-tbl td{border:1px solid var(--bd);background:#fff;padding:5px 5px;text-align:center}
+.rc2 .x-tbl tbody tr:nth-child(even) td{background:var(--cell)}
+.rc2 .x-tbl td.sj{text-align:left;font-weight:600;font-size:11px;text-transform:uppercase}
 .rc2 .x-tbl td.l,.rc2 .x-tbl th.l{text-align:left}
 
-.rc2 .x-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
-.rc2 .x-sum div{background:#fff;border:1px solid var(--bd);border-radius:6px;padding:4px;text-align:center}
-.rc2 .x-sum small{display:block}
-.rc2 .x-sum b{font-size:15px;color:var(--pa)}
+/* summary: plain lines on the report card (boxes are used on the mock slip) */
+.rc2 .x-sum{display:flex;flex-wrap:wrap;gap:3px 26px;margin:14px 0 8px}
+.rc2 .x-sum div{background:none;border:0;padding:0;text-align:left;font-size:11px}
+.rc2 .x-sum small{display:inline;font-size:11px;text-transform:none;color:#1b2133}
+.rc2 .x-sum small:after{content:": "}
+.rc2 .x-sum b{font-size:11px;color:#1b2133;display:inline}
 
-.rc2 .x-cg{display:flex;gap:14px;align-items:flex-start}
+.rc2 .x-cg{display:flex;gap:18px;align-items:flex-start;margin-top:10px}
 .rc2 .x-cg>div:first-child{flex:1.3;min-width:0}
 .rc2 .x-cg>div:last-child{flex:1;min-width:0}
 .rc2 .x-ln{border-bottom:1px dotted var(--ln);min-height:26px;margin:3px 0 8px;padding-top:2px}
 .rc2 .x-gt{width:100%;border-collapse:collapse;font-size:10px}
-.rc2 .x-gt th{background:var(--bg1);border:1px solid var(--bd);padding:2px}
-.rc2 .x-gt td{border:1px solid var(--bd);background:var(--cell);padding:2px 4px;text-align:center}
+.rc2 .x-gt th{background:var(--bg1);border:1px solid var(--hd,var(--pa));padding:2px;color:#111}
+.rc2 .x-gt td{border:1px solid var(--hd,var(--pa));background:#fff;padding:2px 4px;text-align:center}
 .rc2 .x-gt td.l,.rc2 .x-gt th.l{text-align:left}
 
 .rc2 .x-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:30px}
 .rc2 .x-sign div{border-top:1px solid #1b2133;text-align:center;font-size:11px;padding-top:2px}
 
-.rc2>.x-stamp{position:absolute;right:14px;top:10px;width:62px;height:62px;border-radius:50%;background:var(--ac);color:#1b2133;border:3px double #fff;display:grid;place-items:center;align-content:center;text-align:center;font-weight:900;font-size:10px;line-height:1;transform:rotate(12deg);z-index:2}
-.rc2 .x-stamp b{display:block;font-size:17px}
+/* ---- MOCK result slip: coloured header band, round badge, outlined banner, boxed totals ---- */
+.rc2.mk{padding:0 0 18px;border:1px solid var(--bd);border-top:1px solid var(--bd);border-radius:6px}
+.rc2.mk>.x-head{background:var(--pa);border:0;padding:14px 100px 14px 18px;gap:14px}
+.rc2.mk .x-logo{border-radius:8px;border:2px solid #fff;width:56px;height:56px}
+.rc2.mk .x-logo img{width:48px;max-height:48px}
+.rc2.mk .x-hm h2{color:#fff;font-size:18px;letter-spacing:1.5px}
+.rc2.mk .x-hm p,.rc2.mk .x-hm p.x-mt{color:var(--rt);opacity:.75;font-size:9px;letter-spacing:3px}
+.rc2.mk>*:not(.x-head):not(.x-stamp){margin-left:18px;margin-right:18px}
+.rc2.mk .x-ban{margin-top:14px;margin-bottom:10px;padding:7px;border:2px solid var(--pa);border-radius:5px;background:#fff;color:var(--pa);letter-spacing:3px;font-size:11px}
+.rc2.mk .x-grid{grid-template-columns:1fr 1fr}
+.rc2.mk .x-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;margin-bottom:0}
+.rc2.mk .x-sum div{background:#fff;border:1.5px solid var(--pa);border-radius:5px;padding:5px 4px;min-height:46px;text-align:center}
+.rc2.mk .x-sum small{display:block;font-size:9.5px;text-transform:uppercase;color:var(--pa);font-weight:800}
+.rc2.mk .x-sum small:after{content:""}
+.rc2.mk .x-sum b{display:block;font-size:12px;color:var(--ink);margin-top:3px}
+.rc2.mk .x-tbl th{background:var(--pa);border-color:var(--pa)}
+.rc2.mk .x-tbl td{border-color:#9aa3b8}
+.rc2.mk .x-tbl td.sj{text-transform:none;font-weight:700}
+.rc2.mk .x-sign div{border-top:1px solid var(--pa)}
 
-/* ---- flourishes for each template ---- */
-.th-y .x-head{border-bottom:3px double var(--pa)}
+.rc2>.x-stamp{position:absolute;right:18px;top:12px;width:60px;height:60px;border-radius:50%;background:var(--ac);color:#fff;border:3px solid var(--rt);display:grid;place-items:center;align-content:center;text-align:center;font-weight:900;font-size:9px;line-height:1;z-index:2}
+.rc2 .x-stamp b{display:block;font-size:20px}
+
+/* ---- flourishes: each colour template keeps its own personality ---- */
 .th-y .x-ban:before{content:"\2605   "}.th-y .x-ban:after{content:"   \2605"}
+.th-y.rc2{border-top-color:var(--ac)}
+.th-y.rc2.mk{border-top-color:var(--bd)}
 
-.th-b.rc2{border:1px solid var(--bd);border-top:14px solid var(--pa);border-bottom:14px solid var(--pa);outline:0;border-radius:4px;background:var(--bg2)}
-.th-b.rc2:before,.th-b.rc2:after{content:"";position:absolute;width:150px;height:150px;z-index:0;opacity:.6}
-.th-b.rc2:before{top:0;right:0;background:linear-gradient(225deg,var(--bg1) 0 50%,transparent 50%)}
-.th-b.rc2:after{bottom:0;left:0;background:linear-gradient(45deg,var(--bg1) 0 50%,transparent 50%)}
-.th-b .x-head{border-bottom:4px solid var(--ac)}
-.th-b .x-ban{background:linear-gradient(90deg,var(--pa),var(--ac));border-radius:0;color:#fff}
-.th-b .x-sum div{border-left:5px solid var(--ac)}
+.th-b.rc2{border-top-width:10px;border-bottom:10px solid var(--pa)}
+.th-b.rc2.mk{border-top-width:1px;border-bottom-width:1px}
+.th-b .x-ban{background:linear-gradient(90deg,var(--pa),var(--ac));color:#fff;border:0}
+.th-b.mk .x-ban{background:#fff;color:var(--pa);border:2px solid var(--pa)}
 
-.th-p.rc2{border:4px dotted var(--ac);outline:3px solid var(--pa);outline-offset:-11px;border-radius:28px;
-  background:radial-gradient(circle at 0 0,var(--bg1) 0 110px,transparent 111px),radial-gradient(circle at 100% 100%,var(--bg1) 0 110px,transparent 111px),var(--bg2)}
-.th-p .x-head{border-bottom:3px dotted var(--ac)}
-.th-p .x-logo{border-radius:50%}
-.th-p .x-ban{border-radius:30px}
+.th-p.rc2{border:2px solid var(--ac);border-top:8px solid var(--pa);border-radius:18px}
 .th-p .x-ban:before{content:"\2740   "}.th-p .x-ban:after{content:"   \2740"}
-.th-p .x-sum div{border-radius:14px;border:2px dashed var(--ac)}
-.th-p .x-sign div{border-top:2px dotted var(--pa)}
+.th-p .x-logo{border-radius:50%}
+.th-p.mk .x-head{border-radius:16px 16px 0 0}
+.th-p .x-sum div{border-radius:14px}
 
-.th-c.rc2{outline:0;border-radius:4px;background:#fff;border:1px solid var(--bd)}
+.th-c.rc2{border-top:1px solid var(--bd);border-radius:0}
+.th-c .x-ban{color:#111;border-color:#111}
+.th-c.mk .x-ban{border-color:var(--pa);color:var(--pa)}
 
-.th-g.rc2,.th-v.rc2,.th-o.rc2,.th-s.rc2{border-radius:6px;border-top:12px solid var(--pa);border-bottom:12px solid var(--pa);outline:2px solid var(--ac);outline-offset:-8px}
+.th-g.rc2,.th-v.rc2,.th-o.rc2,.th-s.rc2{border-top:6px solid var(--pa);border-bottom:6px solid var(--pa)}
+.th-g.rc2.mk,.th-v.rc2.mk,.th-o.rc2.mk,.th-s.rc2.mk{border-top-width:1px;border-bottom-width:1px}
 
-/* ---- small screens (phones) ---- */
-@media(max-width:480px){
-  .rc2{padding:14px 12px}
-  .rc2 .x-sum{grid-template-columns:1fr 1fr}
-  .rc2 .x-cg{flex-direction:column}
-  .rc2 .x-cg>div{width:100%}
-  .rc2 .x-hm h2{font-size:16px}
-}
+/* ---- sheet holder: on screen the A4 card is scaled to fit the width of the phone/screen ---- */
+.sheetbox{width:100%;overflow:hidden}
 
-/* ---- printing: one A4 page per report card, filled top to bottom ---- */
-@page{size:A4 portrait;margin:8mm}
+/* ---- printing: exactly one A4 page per card, top to bottom ---- */
+@page{size:A4 portrait;margin:6mm}
 @media print{
-  .pgc{break-after:page;page-break-after:always}
+  .pgc{break-after:page;page-break-after:always;width:198mm!important;height:284mm!important;overflow:hidden;margin:0!important;padding:0!important}
   .pgc:last-child{break-after:auto;page-break-after:auto}
-  .rc2{margin:0;max-width:none;font-size:12.5px}
-  .pgc .rc2,.mc>.rc2{min-height:276mm;display:flex;flex-direction:column;justify-content:space-between}
+  .sheetbox{height:284mm!important;overflow:hidden}
+  .rc2{width:198mm!important;height:284mm!important;max-width:none!important;margin:0!important;transform:none!important}
 }
