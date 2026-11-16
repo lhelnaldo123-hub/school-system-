@@ -5,7 +5,45 @@ const Payment = require("../models/Payment");
 const auth = require("../middleware/auth");
 const { studentFees } = require("../utils/balance");
 const User = require("../models/User");
+const School = require("../models/School");
 const { notifyUsers, notifyStaff } = require("../utils/notify");
+const { deliver, whatsappOn } = require("../services/whatsapp");
+
+// ---------- receipts ----------
+const rno = p => "RCT-" + String(p._id).slice(-6).toUpperCase();
+const NETWORKS = ["MTN", "Telecel (Vodafone)", "AirtelTigo"];
+
+// Adds the receipt number and the balance left on that fee after each payment
+async function shape(pays) {
+  if (!pays.length) return [];
+  const sid = pays.map(p => String((p.studentId && p.studentId._id) || p.studentId));
+  const fid = pays.map(p => String((p.feeId && p.feeId._id) || p.feeId));
+  const [fees, all] = await Promise.all([
+    Fee.find({ _id: { $in: fid } }).select("amount"),
+    Payment.find({ studentId: { $in: sid }, feeId: { $in: fid }, status: "success" }).select("studentId feeId amount paidAt")
+  ]);
+  const total = {}; fees.forEach(f => { total[f._id] = f.amount; });
+  return pays.map(p => {
+    const s = String((p.studentId && p.studentId._id) || p.studentId), f = String((p.feeId && p.feeId._id) || p.feeId);
+    const paid = all.filter(x => String(x.studentId) === s && String(x.feeId) === f &&
+      (new Date(x.paidAt) < new Date(p.paidAt) || (String(x._id) === String(p._id)) || (+new Date(x.paidAt) === +new Date(p.paidAt) && String(x._id) <= String(p._id))))
+      .reduce((a, x) => a + x.amount, 0);
+    return Object.assign(p.toObject(), { receiptNo: rno(p), feeTotal: total[f] || 0, balanceAfter: Math.max(0, (total[f] || 0) - paid) });
+  });
+}
+
+// Sends the receipt to the parent(s) on WhatsApp (only if WhatsApp is set up; it never uses paid SMS)
+async function sendReceipt(p) {
+  try {
+    if (!whatsappOn()) return;
+    const [school, st, fee] = await Promise.all([School.findById(p.schoolId), Student.findById(p.studentId).populate("parents", "phone"), Fee.findById(p.feeId)]);
+    const [x] = await shape([p]);
+    const text = "RECEIPT " + x.receiptNo + " from " + (school.invoiceName || school.name) + ". Student: " + st.name + ". Paid: GHS " + p.amount.toFixed(2) +
+      " for " + (fee ? fee.title : "fees") + (p.txnId ? ". Transaction ID: " + p.txnId : "") + ". Balance left: GHS " + x.balanceAfter.toFixed(2) + ". Date: " + new Date(p.paidAt).toDateString() + ". Thank you.";
+    for (const par of (st.parents || []).filter(z => z && z.phone))
+      await deliver({ channel: "whatsapp", to: par.phone, message: text, school: school.name, smsFallback: false });
+  } catch (e) { console.error("receipt send error:", e.message); }
+}
 
 // Head/owner creates a fee (school fees, exam fee, mock fee...)
 router.post("/", auth(["owner", "head"]), async (req, res) => {
@@ -27,13 +65,21 @@ router.get("/mine", auth(["parent"]), async (req, res) => {
   res.json(out);
 });
 
-// Parent: recent payments for their children
+// Parent: recent payments for their children (these are the receipts)
 router.get("/history", auth(["parent"]), async (req, res) => {
   const kids = await Student.find({ schoolId: req.user.schoolId, parents: req.user.id }).select("_id name");
   const ids = kids.map(k => k._id);
-  const pays = await Payment.find({ studentId: { $in: ids }, status: "success" })
-    .populate("feeId", "title").populate("studentId", "name").sort({ paidAt: -1 }).limit(50);
-  res.json(pays);
+  const pays = await Payment.find({ studentId: { $in: ids }, status: "success" }).select("-proof")
+    .populate("feeId", "title amount").populate("studentId", "name className").sort({ paidAt: -1 }).limit(50);
+  res.json(await shape(pays));
+});
+
+// Head/owner: all recent receipts (with the parents' phone numbers, to send a receipt on WhatsApp)
+router.get("/receipts", auth(["owner", "head"]), async (req, res) => {
+  const pays = await Payment.find({ schoolId: req.user.schoolId, status: "success" }).select("-proof")
+    .populate("feeId", "title amount").populate({ path: "studentId", select: "name className parents", populate: { path: "parents", select: "name phone" } })
+    .sort({ paidAt: -1 }).limit(150);
+  res.json(await shape(pays));
 });
 
 // Head/owner: fees and balances of one student
@@ -64,6 +110,8 @@ router.post("/cash", auth(["owner", "head"]), async (req, res) => {
     schoolId: req.user.schoolId, studentId, feeId, amount: amt, method: "cash",
     reference: "CASH-" + Date.now(), status: "success", paidAt: new Date()
   });
+  if (st.parents && st.parents.length) notifyUsers(req.user.schoolId, st.parents, "🧾 Payment received", "The school received GHS " + amt.toFixed(2) + " for " + st.name + " (" + fee.title + "). Your receipt is under Payments.", "history");
+  sendReceipt(p);
   res.json(p);
 });
 
@@ -85,7 +133,7 @@ const cleanId = v => String(v || "").trim().toUpperCase().replace(/\s+/g, "");
 // Parent sends proof of a MoMo payment
 router.post("/momo", auth(["parent"]), async (req, res) => {
   try {
-    const { studentId, feeId, amount, txnId, proof, payerNumber } = req.body;
+    const { studentId, feeId, amount, txnId, proof, payerNumber, network } = req.body;
     const st = await Student.findOne({ _id: studentId, schoolId: req.user.schoolId, parents: req.user.id });
     if (!st) return res.status(403).json({ error: "Not your child" });
     const fee = (await studentFees(st)).find(x => String(x.feeId) === String(feeId));
@@ -99,15 +147,16 @@ router.post("/momo", auth(["parent"]), async (req, res) => {
     if (t.length < 6) return res.status(400).json({ error: "Write the MoMo transaction ID from your SMS" });
     if (await Payment.findOne({ schoolId: req.user.schoolId, txnId: t, status: { $in: ["review", "success"] } }))
       return res.status(400).json({ error: "This transaction ID has already been used" });
+    if (!NETWORKS.includes(network)) return res.status(400).json({ error: "Choose the network you paid with (MTN, Telecel or AirtelTigo)" });
     if (!/^data:image\//.test(proof || "")) return res.status(400).json({ error: "Add the screenshot of the payment" });
     if (proof.length > 1800000) return res.status(400).json({ error: "The screenshot is too big, try another" });
     const p = await Payment.create({
       schoolId: req.user.schoolId, studentId, feeId, parentId: req.user.id, amount: amt, method: "momo",
       reference: "MOMO-" + Date.now() + "-" + Math.floor(Math.random() * 1000), status: "review",
-      txnId: t, payerNumber: String(payerNumber || "").trim(), proof
+      network, txnId: t, payerNumber: String(payerNumber || "").trim(), proof
     });
     const who = await User.findById(req.user.id).select("name");
-    notifyStaff(req.user.schoolId, "📲 MoMo payment to confirm", (who ? who.name : "A parent") + " sent GHS " + amt.toFixed(2) + " for " + st.name + " (" + fee.title + "). Open the screenshot and confirm.", "momo");
+    notifyStaff(req.user.schoolId, "📲 MoMo payment to confirm", (who ? who.name : "A parent") + " sent GHS " + amt.toFixed(2) + " for " + st.name + " (" + fee.title + ") by " + network + ". Open the screenshot and confirm.", "momo");
     res.json({ ok: true, id: p._id });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -142,7 +191,8 @@ router.post("/momo/:id/approve", auth(["owner", "head"]), async (req, res) => {
   p.amount = amt; p.status = "success"; p.paidAt = new Date(); p.decidedBy = req.user.id; p.decidedAt = new Date();
   await p.save();
   if (p.parentId) notifyUsers(p.schoolId, [p.parentId], "✅ Payment confirmed", "The school confirmed your MoMo payment of GHS " + amt.toFixed(2) + " for " + st.name + ".", "history");
-  res.json({ ok: true });
+  sendReceipt(p);
+  res.json({ ok: true, id: p._id });
 });
 
 router.post("/momo/:id/reject", auth(["owner", "head"]), async (req, res) => {
