@@ -1,9 +1,8 @@
 const cron = require("node-cron");
 const School = require("../models/School");
 const Student = require("../models/Student");
-const User = require("../models/User");
 const { studentFees } = require("../utils/balance");
-const { sendSMS } = require("../services/sms");
+const { deliver } = require("../services/whatsapp");
 
 const sent = new Map();
 
@@ -14,81 +13,73 @@ const clearOldKeys = () => {
   }
 };
 
-const formatMessage = (message, values) => {
-  return (message || "Dear parent, {student} owes {amount} at {school}. Please pay via the school app. Thank you.")
-    .replace(/\{student\}/gi, values.student || "student")
-    .replace(/\{amount\}/gi, values.amount || "0")
-    .replace(/\{school\}/gi, values.school || "school");
-};
+// {amount} becomes "GHS 120.00" (and an old "GHS {amount}" in a saved message does not print GHS twice)
+const formatMessage = (message, v) =>
+  (message || "Dear parent, {student} owes {amount} at {school}. Please pay via the school app. Thank you.")
+    .replace(/GHS\s*\{amount\}/gi, "{amount}")
+    .replace(/\{student\}/gi, v.student || "student")
+    .replace(/\{amount\}/gi, v.amount || "GHS 0.00")
+    .replace(/\{school\}/gi, v.school || "school");
+
+// What one student owes, as a ready message (null when nothing is owed)
+async function messageFor(school, student) {
+  const fees = await studentFees(student);
+  const owed = fees.reduce((sum, f) => sum + f.balance, 0);
+  if (owed <= 0) return null;
+  return {
+    owed, fees,
+    message: formatMessage(school.reminder && school.reminder.message, { student: student.name, amount: "GHS " + owed.toFixed(2), school: school.name })
+  };
+}
 
 const buildReminderList = async (school) => {
   const students = await Student.find({ schoolId: school._id, active: true }).populate("parents", "name phone");
   const reminders = [];
-
   for (const student of students) {
     const parents = (student.parents || []).filter(p => p && p.phone);
     if (!parents.length) continue;
+    const m = await messageFor(school, student);
+    if (!m) continue;
 
-    const fees = await studentFees(student);
-    const owed = fees.reduce((sum, fee) => sum + fee.balance, 0);
-    if (owed <= 0) continue;
-
-    const oldestDue = fees
+    const oldestDue = m.fees
       .filter(f => f.balance > 0 && f.dueDate)
       .reduce((oldest, fee) => {
         const due = new Date(fee.dueDate).getTime();
         return !oldest || due < oldest ? due : oldest;
       }, null);
-
-    const monthsLimit = Number(school.reminder?.monthsLimit || 1);
+    const monthsLimit = Number((school.reminder && school.reminder.monthsLimit) || 1);
     const dueMonthsAgo = oldestDue ? (Date.now() - oldestDue) / (1000 * 60 * 60 * 24 * 30) : 0;
     if (oldestDue && dueMonthsAgo < monthsLimit) continue;
 
-    for (const parent of parents) {
-      reminders.push({
-        parentId: parent._id,
-        parentName: parent.name,
-        phone: parent.phone,
-        student: student.name,
-        amount: `GHS ${(owed || 0).toFixed(2)}`,
-        className: student.className,
-        message: formatMessage(school.reminder?.message || "Dear parent, {student} owes {amount} at {school}. Please pay via the school app. Thank you.", {
-          student: student.name,
-          amount: `GHS ${(owed || 0).toFixed(2)}`,
-          school: school.name
-        })
-      });
-    }
+    for (const parent of parents)
+      reminders.push({ parentId: parent._id, parentName: parent.name, phone: parent.phone, student: student.name, amount: "GHS " + m.owed.toFixed(2), message: m.message });
   }
-
   return reminders;
 };
 
+// Send the reminders of one school. force = true ignores the "already sent today" check.
+async function runSchool(school, force) {
+  const channel = (school.reminder && school.reminder.channel) || "sms";
+  const list = await buildReminderList(school);
+  const out = { total: list.length, sent: 0, failed: 0, channel };
+  for (const item of list) {
+    const key = `${school._id}:${item.parentId}:${item.student}:${item.amount}`;
+    if (!force && sent.has(key)) continue;
+    const r = await deliver({ channel, to: item.phone, message: item.message, school: school.name, smsFallback: true });
+    if (r.ok) { sent.set(key, Date.now()); out.sent++; console.log(`[Reminder] ${r.via} to ${item.parentName || item.phone} for ${item.student}`); }
+    else { out.failed++; console.error(`[Reminder] failed for ${item.parentName || item.phone}: ${r.reason}`); }
+  }
+  return out;
+}
+
 const run = async () => {
   clearOldKeys();
+  const today = new Date().getDate();
   const schools = await School.find({ "reminder.enabled": true });
-
   for (const school of schools) {
-    try {
-      const reminders = await buildReminderList(school);
-      for (const item of reminders) {
-        const key = `${school._id}:${item.parentId}:${item.student}:${item.amount}`;
-        if (sent.has(key)) continue;
-
-        const result = await sendSMS({
-          to: item.phone,
-          message: item.message,
-          school: school.name
-        });
-
-        if (result.ok) {
-          sent.set(key, Date.now());
-          console.log(`[Reminder] sent to ${item.parentName || item.phone} for ${item.student}`);
-        }
-      }
-    } catch (err) {
-      console.error("Reminder job failed:", err.message);
-    }
+    if (today !== Number((school.reminder && school.reminder.dayOfMonth) || 1)) continue;   // only on the chosen day
+    try { await runSchool(school, false); }
+    catch (err) { console.error("Reminder job failed:", err.message); }
   }
 };
 
@@ -97,4 +88,4 @@ const startJobs = () => {
   console.log("Fee reminder job started");
 };
 
-module.exports = { startJobs, run };
+module.exports = { startJobs, run, runSchool, messageFor, formatMessage, buildReminderList };
