@@ -128,7 +128,7 @@
 
 /* ---- the school's own uploaded template: their A4 picture is the page, content is printed on top ---- */
 .th-u{--pa:var(--b);--ac:var(--y);--rt:#fff;--bg1:rgba(255,255,255,.75);--bg2:#fff;--bd:#555;--tx:#222;--ink:#0d1f8f;--cell:rgba(255,255,255,.6);--ln:#555;--hd:var(--b)}
-.rc2.th-u,.rc2.th-u.mk{background:#fff var(--tplimg,none) center/100% 100% no-repeat;border:0;border-radius:0;padding:var(--tpltop,40mm) var(--tplside,10mm) 12mm}
+.rc2.th-u,.rc2.th-u.mk{background:#fff var(--tplimg,none) center/100% 100% no-repeat;border:0;border-radius:0;padding:var(--tpltop,40mm) var(--tplside,10mm) var(--tplbot,12mm)}
 .rc2.th-u.mk>*:not(.x-head):not(.x-stamp){margin-left:0;margin-right:0}
 .th-u .x-head{background:none;border-bottom:0;padding-right:0;color:#111}
 .th-u .x-hm h2{color:var(--pa)}.th-u .x-hm p,.th-u.mk .x-hm p{color:#333;opacity:1}
@@ -138,3 +138,100 @@ html[data-tplhd="0"] .th-u .x-head{display:none}
 .th-u .x-ban,.th-u.mk .x-ban{background:rgba(255,255,255,.7)}
 .th-u .x-sum div{background:rgba(255,255,255,.7)}
 .th-u>.x-stamp{top:calc(var(--tpltop,40mm) - 22mm)}
+
+/* =====================================================================
+   LAYOUT STYLES (card design). Pick one in School Settings > Report card look.
+   Each style works with every colour template, for the end-of-term card and the mock slip.
+   Classic = no extra class. Modern = .lay-m, Elegant = .lay-e, Bold = .lay-b
+   ===================================================================== */
+.rc2{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+/* ---------- MODERN: coloured header band, pill banner, rounded boxes, soft table ---------- */
+.rc2.lay-m{border:1px solid var(--bd);border-radius:14px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.rc2.lay-m:not(.mk)>.x-head{margin:-18px -20px 0;padding:16px 22px;background:var(--pa);border:0;border-radius:13px 13px 0 0;gap:14px}
+.rc2.lay-m .x-logo{border-radius:12px;border:2px solid #fff;width:60px;height:60px}
+.rc2.lay-m .x-hm h2{color:#fff;letter-spacing:1px}
+.rc2.lay-m .x-hm p,.rc2.lay-m .x-hm p.x-mt{color:var(--rt);opacity:.85}
+.rc2.lay-m .x-ban{margin:16px auto 12px;width:max-content;max-width:100%;padding:5px 24px;border:1.5px solid var(--pa);border-radius:99px;background:var(--bg1);color:var(--pa);letter-spacing:3px}
+.rc2.lay-m .x-ban:before,.rc2.lay-m .x-ban:after{content:none}
+.rc2.lay-m .x-grid div{border-bottom:0;background:var(--bg2);border:1px solid var(--bg1);border-radius:8px;padding:4px 8px}
+.rc2.lay-m .x-photo{border-radius:14px;border:2px solid var(--pa)}
+.rc2.lay-m .x-tbl{border-collapse:separate;border-spacing:0;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.rc2.lay-m .x-tbl th{border:0;padding:7px 4px}
+.rc2.lay-m .x-tbl td{border:0;border-bottom:1px solid var(--bg1)}
+.rc2.lay-m .x-tbl tbody tr:last-child td{border-bottom:0}
+.rc2.lay-m .x-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:14px 0 8px}
+.rc2.lay-m .x-sum div{background:var(--bg2);border:1.5px solid var(--pa);border-radius:10px;padding:6px 6px;text-align:center}
+.rc2.lay-m .x-sum small{display:block;font-size:9.5px;text-transform:uppercase;color:var(--pa);font-weight:800}
+.rc2.lay-m .x-sum small:after{content:""}
+.rc2.lay-m .x-sum b{display:block;margin-top:3px;color:var(--ink)}
+.rc2.lay-m .x-gt{border-collapse:separate;border-spacing:0;border-radius:6px;overflow:hidden}
+.rc2.lay-m .x-sign div{border-top:2px solid var(--pa)}
+.rc2.lay-m.mk{border-radius:14px}
+.rc2.lay-m.mk>.x-head{border-radius:13px 13px 0 0}
+
+/* ---------- ELEGANT: serif type, double frame, centred header, ruled table ---------- */
+.rc2.lay-e{font-family:Georgia,"Times New Roman",serif;border:3px double var(--pa);border-radius:0;padding:22px 28px;
+  box-shadow:inset 0 0 0 5px #fff,inset 0 0 0 6px var(--ac)}
+.rc2.lay-e .x-head{flex-direction:column;text-align:center;gap:4px;border-bottom:0;padding-bottom:0}
+.rc2.lay-e .x-logo{width:70px;height:70px}
+.rc2.lay-e .x-logo img{width:66px;max-height:66px}
+.rc2.lay-e .x-hm h2{font-size:22px;letter-spacing:3px;font-weight:700}
+.rc2.lay-e .x-hm p.x-mt{letter-spacing:3px}
+.rc2.lay-e .x-head:after{content:"";display:block;width:70%;margin-top:8px;border-top:1px solid var(--ac);border-bottom:2px solid var(--pa);height:2px}
+.rc2.lay-e .x-ban{border:0;margin:12px 0 10px;font-size:13px;font-style:italic;letter-spacing:5px;color:var(--pa)}
+.rc2.lay-e .x-ban:before{content:"\2756   "}.rc2.lay-e .x-ban:after{content:"   \2756"}
+.rc2.lay-e .x-grid div{border-bottom:1px solid var(--ln)}
+.rc2.lay-e .x-grid small,.rc2.lay-e .x-lb{font-variant:small-caps;text-transform:none;letter-spacing:1px;font-size:11px}
+.rc2.lay-e .x-photo{border:3px double var(--pa)}
+.rc2.lay-e .x-tbl th{background:none;color:var(--pa);border:0;border-top:2px solid var(--pa);border-bottom:2px solid var(--pa);letter-spacing:1px}
+.rc2.lay-e .x-tbl td{border:0;border-bottom:1px solid var(--ln);background:none}
+.rc2.lay-e .x-tbl tbody tr:nth-child(even) td{background:none}
+.rc2.lay-e .x-tbl td.sj{font-variant:small-caps;text-transform:none;font-size:12px;letter-spacing:.5px}
+.rc2.lay-e .x-sum{justify-content:center;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);padding:6px 0}
+.rc2.lay-e .x-gt th{background:none;border:0;border-bottom:1px solid var(--pa)}
+.rc2.lay-e .x-gt td{border:0;border-bottom:1px dotted var(--ln)}
+.rc2.lay-e .x-sign{gap:60px}
+.rc2.lay-e .x-sign div{border-top:1px solid #1b2133;font-style:italic}
+/* mock slip: same frame, plain centred header instead of the colour band */
+.rc2.lay-e.mk{padding:22px 28px;border-radius:0}
+.rc2.lay-e.mk>.x-head{background:none;padding:0}
+.rc2.lay-e.mk .x-hm h2{color:var(--pa);font-size:20px}
+.rc2.lay-e.mk .x-hm p,.rc2.lay-e.mk .x-hm p.x-mt{color:var(--tx);opacity:1}
+.rc2.lay-e.mk .x-logo{border:0;border-radius:0}
+.rc2.lay-e.mk>*:not(.x-head):not(.x-stamp){margin-left:0;margin-right:0}
+.rc2.lay-e.mk .x-ban{border:0;background:none}
+.rc2.lay-e.mk .x-sum div{border-radius:0;border:1px solid var(--pa)}
+.rc2.lay-e.mk .x-tbl th{background:none;color:var(--pa)}
+.rc2.lay-e.mk .x-tbl td{border-color:var(--ln)}
+.rc2.lay-e>.x-stamp{right:30px;top:24px}
+
+/* ---------- BOLD: heavy side bar, big left-aligned name, solid blocks ---------- */
+.rc2.lay-b{border:0;border-left:16px solid var(--pa);border-radius:0;padding:18px 20px 18px 18px;box-shadow:inset 0 0 0 1px var(--bd)}
+.rc2.lay-b:not(.mk)>.x-head{border-bottom:4px solid var(--ac);padding-bottom:10px}
+.rc2.lay-b .x-hm h2{font-size:27px;font-weight:900;letter-spacing:0;line-height:1}
+.rc2.lay-b .x-hm p{font-size:10px}
+.rc2.lay-b .x-logo{width:70px;height:70px}
+.rc2.lay-b .x-logo img{width:66px;max-height:66px}
+.rc2.lay-b .x-ban{margin:12px 0 10px;width:max-content;max-width:100%;padding:5px 16px;text-align:left;background:var(--pa);color:var(--rt);border:0;letter-spacing:2px;font-size:12px}
+.rc2.lay-b .x-ban:before,.rc2.lay-b .x-ban:after{content:none}
+.rc2.lay-b .x-grid div{border-bottom:2px solid var(--bg1)}
+.rc2.lay-b .x-grid small{color:var(--pa)}
+.rc2.lay-b .x-photo{border:3px solid var(--ac);border-radius:0;width:78px;height:92px}
+.rc2.lay-b .x-tbl{border-collapse:collapse}
+.rc2.lay-b .x-tbl th{border:0;padding:7px 5px;letter-spacing:1px}
+.rc2.lay-b .x-tbl td{border:0;border-bottom:2px solid var(--bg1)}
+.rc2.lay-b .x-tbl td.sj{font-weight:800}
+.rc2.lay-b .x-tbl td:nth-child(4){font-weight:800;background:var(--bg2)}
+.rc2.lay-b .x-sum{display:flex;flex-wrap:nowrap;gap:0;margin:14px 0 8px}
+.rc2.lay-b .x-sum div{flex:1;border-right:3px solid #fff;background:var(--pa);color:#fff;border:0;border-radius:0;padding:8px 10px;min-height:0;text-align:left}
+.rc2.lay-b .x-sum small{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--rt);opacity:.85;font-weight:800}
+.rc2.lay-b .x-sum small:after{content:""}
+.rc2.lay-b .x-sum b{display:block;margin-top:2px;font-size:15px;color:#fff}
+.rc2.lay-b .x-gt th{background:var(--pa);color:var(--rt);border-color:var(--pa)}
+.rc2.lay-b .x-gt td{border-color:var(--bg1)}
+.rc2.lay-b .x-sign div{border-top:3px solid var(--pa);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:1px}
+.rc2.lay-b.mk{padding:0 0 18px;border-left-width:16px}
+.rc2.lay-b.mk>.x-head{border-bottom:0}
+.rc2.lay-b.mk .x-ban{border:0}
+.rc2.lay-b.mk .x-tbl td{border-color:var(--bg1)}
