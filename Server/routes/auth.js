@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const School = require("../models/School");
 const User = require("../models/User");
 const Student = require("../models/Student");
+const Invite = require("../models/Invite");
 const auth = require("../middleware/auth");
 
 function sign(u) {
@@ -13,21 +14,43 @@ function sign(u) {
 // 1) Create a new school + its owner account (run once per school)
 router.post("/register-school", async (req, res) => {
   try {
-    const { schoolName, code, ownerName, email, password, phone, primary, accent } = req.body;
+    const { schoolName, code, ownerName, email, password, phone, primary, accent, inviteCode } = req.body;
     if (!schoolName || !code || !ownerName || !email || !password)
       return res.status(400).json({ error: "Fill in all fields" });
     if (password.length < 6) return res.status(400).json({ error: "Password must be 6+ characters" });
+    if (!inviteCode) return res.status(400).json({ error: "Registration code is needed. Ask the system provider for one." });
     if (await School.findOne({ code: code.toLowerCase() }))
       return res.status(400).json({ error: "That school code is taken" });
 
-    const school = await School.create({
-      name: schoolName, code, invoiceName: schoolName,
-      colors: { primary: primary || "#0b2a8f", accent: accent || "#f5b800" }
-    });
-    const owner = await User.create({
-      schoolId: school._id, name: ownerName, email, phone,
-      passwordHash: await bcrypt.hash(password, 10), role: "owner"
-    });
+    // Claim the one-time code first (atomic: two people cannot use it together)
+    const inv = await Invite.findOneAndUpdate(
+      { code: String(inviteCode).trim().toUpperCase(), used: false, $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gt: new Date() } }] },
+      { used: true, usedAt: new Date() }
+    );
+    if (!inv) return res.status(400).json({ error: "This registration code is invalid, expired or already used" });
+
+    let school;
+    try {
+      school = await School.create({
+        name: schoolName, code, invoiceName: schoolName,
+        colors: { primary: primary || "#0b2a8f", accent: accent || "#f5b800" }
+      });
+    } catch (e) {
+      await Invite.updateOne({ _id: inv._id }, { used: false, $unset: { usedAt: 1 } });
+      throw e;
+    }
+    inv.schoolId = school._id; await inv.save();
+    let owner;
+    try {
+      owner = await User.create({
+        schoolId: school._id, name: ownerName, email, phone,
+        passwordHash: await bcrypt.hash(password, 10), role: "owner"
+      });
+    } catch (e) {
+      await School.deleteOne({ _id: school._id });
+      await Invite.updateOne({ _id: inv._id }, { used: false, $unset: { usedAt: 1, schoolId: 1 } });
+      throw e;
+    }
     res.json({ token: sign(owner), user: { id: owner._id, name: owner.name, role: owner.role }, school });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
