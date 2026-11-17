@@ -247,6 +247,7 @@ PS.settings = async m => {
     <div class="r2"><div><label class="l1">Main colour</label><input id="st_p" type="color" value="${esc((s.colors || {}).primary || "#0b2a8f")}"></div><div><label class="l1">Accent colour</label><input id="st_a" type="color" value="${esc((s.colors || {}).accent || "#f5b800")}"></div></div></div>
     ${lookBlock(s)}
     ${momoBlock(s)}
+    ${paystackBlock(s)}
     <div class="fm"><b>Classes</b><p class="mu">One per line, from the lowest class to the highest.</p><textarea id="st_cl" rows="8">${esc((s.classes || []).join("\n"))}</textarea></div>
     <div class="fm"><b>Subjects</b><p class="mu">One per line. These appear on report cards.</p><textarea id="st_sb" rows="8">${esc((s.subjects || []).join("\n"))}</textarea></div>
     <div class="fm"><b>Fee reminders to parents</b><label class="chk1" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="st_re" ${r.enabled ? "checked" : ""}> Send reminders automatically</label>
@@ -256,7 +257,7 @@ PS.settings = async m => {
     <label class="l1">Message ({student} {amount} {school} are filled in automatically)</label><textarea id="st_ms" rows="3">${esc(r.message || "")}</textarea>
     <p class="mu">The sending itself is switched on in the next step.</p></div>
     <button class="y" onclick="saveSettings()">💾 Save settings</button>`;
-  tpZone();
+  tpZone(); psLoad();
 };
 function lookBlock(s) {
   const t = s.reportTpl || {}, k = s.ink || {}, TL = Object.assign({}, THEMES, { u: "My own template (upload below)" });
@@ -277,6 +278,39 @@ function lookBlock(s) {
     <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="tp_hd" ${t.hideHead === false ? "" : "checked"}> My picture already has the school name and logo (hide the app's header)</label>
     <p class="mu">Upload your picture and the app measures it and fits the report card into its empty middle (the red dashed box is where the marks and tables go). "My own template" is chosen for you. If the box is not quite right, change the numbers, then Save. Your picture replaces the old one.</p></div>`;
 }
+/* ---------- Online payments: the owner pastes the school's OWN Paystack secret key ---------- */
+function paystackBlock() {
+  return `<div class="fm"><b>Online payments (Paystack)</b>
+    <p class="mu">Parents can pay fees online with Mobile Money or card. The money goes straight to YOUR school's Paystack account. Create a free account at paystack.com, then copy your <b>Secret key</b> from Paystack: Settings &gt; API Keys &amp; Webhooks. Try the <b>test</b> key first (sk_test_...). Use the <b>live</b> key (sk_live_...) when your Paystack account is activated.</p>
+    <div id="ps_st" class="mu">Checking…</div>
+    <label class="l1">Secret key (starts with sk_test_ or sk_live_)</label>
+    <input id="ps_key" type="password" autocomplete="off" autocapitalize="none" placeholder="sk_test_xxxxxxxxxxxxxxxx">
+    <div class="r2"><button class="y sm" onclick="psSave()">Save key</button><button class="r sm" onclick="psRemove()">Remove key</button></div>
+    <label class="l1">Webhook link: paste this in Paystack &gt; Settings &gt; API Keys &amp; Webhooks (in both the Test and the Live webhook boxes)</label>
+    <input id="ps_wh" readonly onclick="this.select()">
+    <button class="sm" onclick="psCopy()">Copy link</button>
+    <p class="mu">Never share your secret key. It is saved locked and is never shown again. Only the school owner can change it.</p></div>`;
+}
+function psShow(j) {
+  const st = $("#ps_st"), wh = $("#ps_wh"); if (!st) return;
+  st.innerHTML = j.on ? `✅ Online payment is <b>ON</b> (${j.mode === "live" ? "LIVE: real money" : "TEST: practice only"}). Saved key ends with <b>${esc(j.last4)}</b>.` : "⚪ Online payment is <b>OFF</b>. Parents can still pay by Mobile Money or at the office.";
+  if (wh) wh.value = j.webhook || "";
+  S.school = S.school || {}; S.school.paystack = !!j.on;
+}
+async function psLoad() { try { psShow(await api("/school/mine/paystack")); } catch (e) { const st = $("#ps_st"); if (st) st.textContent = e.message; } }
+async function psSave() {
+  const k = $("#ps_key").value.trim(); if (!k) return toast("Paste your Paystack secret key first");
+  busy(true);
+  try { const j = await api("/school/mine/paystack", "PUT", { secret: k }); $("#ps_key").value = ""; psShow(j); toast(j.mode === "live" ? "Saved. Online payment is LIVE ✅" : "Saved. Test mode is on ✅"); }
+  catch (e) { toast(e.message); } finally { busy(false); }
+}
+async function psRemove() {
+  if (!confirm("Switch off online payment and delete the saved key?")) return;
+  busy(true);
+  try { psShow(await api("/school/mine/paystack", "DELETE")); toast("Online payment switched off"); }
+  catch (e) { toast(e.message); } finally { busy(false); }
+}
+function psCopy() { const w = $("#ps_wh"); if (!w) return; w.select(); try { navigator.clipboard.writeText(w.value); toast("Link copied"); } catch (e) { document.execCommand("copy"); toast("Link copied"); } }
 function momoBlock(s) {
   const m = s.momo || {};
   return `<div class="fm"><b>Mobile money (parents pay and send a screenshot)</b><p class="mu">Parents see this number, pay with their phone, then send the transaction ID and screenshot. You confirm each one under "MoMo payments".</p>
