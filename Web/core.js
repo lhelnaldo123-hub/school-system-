@@ -9,6 +9,9 @@ let S = { token: localStorage.getItem("token") || "", user: J("user", null), sch
 
 function toast(m) { const t = $("#tt"); t.textContent = m; t.style.display = "block"; clearTimeout(toast.i); toast.i = setTimeout(() => t.style.display = "none", 3200); }
 function busy(on) { $("#bz").hidden = !on; }
+// Coming back from Paystack (Back button / Cancel) restores the old page with the "Please wait" cover still on. Clear it.
+window.addEventListener("pageshow", e => { if (e.persisted) busy(false); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) busy(false); });
 
 async function api(path, method, body) {
   const o = { method: method || "GET", headers: { "Content-Type": "application/json" } };
