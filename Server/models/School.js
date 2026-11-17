@@ -6,6 +6,13 @@ const SchoolSchema = new mongoose.Schema({
   motto: { type: String, default: "" },
   logo: { type: String, default: "" },            // image URL or base64
   invoiceName: { type: String, default: "" },     // name printed on receipts/invoices
+  // Paystack: the school's OWN secret key, locked (encrypted). It is never sent back to any screen.
+  paystackKey: { type: String, default: "", select: false },
+  paystackInfo: {
+    mode: { type: String, default: "" },        // "test" or "live"
+    last4: { type: String, default: "" },       // last 4 characters of the key, so the owner can recognise it
+    setAt: { type: Date }
+  },
   reportLayout: { type: String, enum: ["d", "m", "e", "b"], default: "d" }, // report card style: d classic, m modern, e elegant, b bold
   reportTheme: { type: String, default: "y" },    // report card colour: y b p c g v o s
   email: { type: String, default: "" },
