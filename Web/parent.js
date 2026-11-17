@@ -105,12 +105,48 @@ async function payNow(sid, fid) {
   try { const j = await api("/paystack/init", "POST", { studentId: sid, feeId: fid, amount: v }); location.href = j.url; }
   catch (e) { busy(false); toast(e.message); }
 }
-async function verifyPaid(ref) {
-  busy(true);
-  try { const j = await api("/paystack/verify/" + encodeURIComponent(ref)); toast(j.status === "success" ? "Payment successful ✅" : "Payment " + j.status); go("history"); }
-  catch (e) { toast(e.message); }
-  busy(false);
+/* ----- after Paystack: the payment result page (code to copy + receipt + back to Home) ----- */
+function verifyPaid(ref) { S.payRef = ref; go("paid"); }
+function copyCode(t) {
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => toast("Code copied ✅"), () => toast(t));
+  else toast(t);
 }
+const payBox = (cls, ico, title, body) => `<div class="c payres ${cls}"><div class="pr-ico">${ico}</div><h2>${title}</h2>${body}</div>`;
+const payCode = ref => `<div class="pr-code"><small>PAYMENT CODE · keep it for future reference</small><b>${esc(ref)}</b><button class="sm y" data-c="${esc(ref)}" onclick="copyCode(this.dataset.c)">📋 Copy code</button></div>`;
+PP.paid = async m => {
+  const ref = S.payRef;
+  if (!ref) return go("home");
+  $("#pt").textContent = "Payment";
+  m.innerHTML = payBox("wait", "⏳", "Checking your payment…", '<p class="mu">Please wait a moment. Do not close this page.</p>' + payCode(ref));
+  let st = "pending", err = "";
+  for (let i = 0; i < 6; i++) {
+    try { st = (await api("/paystack/verify/" + encodeURIComponent(ref))).status; err = ""; }
+    catch (e) { err = e.message; st = "error"; break; }
+    if (st !== "pending") break;
+    if (i < 5) await new Promise(r => setTimeout(r, 3000));
+    if (S.page !== "paid") return;               // the parent left this page: stop
+  }
+  if (S.page !== "paid") return;
+  const home = '<button class="g" onclick="go(\'home\')">🏠 Back to Home</button>';
+  if (st === "success") {
+    let p = null;
+    try { p = (await api("/fees/history")).find(x => x.reference === ref) || null; } catch (e) { }
+    window.PAYP = p;
+    const row = (a, b) => `<tr><td>${a}</td><td><b>${b}</b></td></tr>`;
+    const tbl = p ? `<table>${row("Student", esc(p.studentId && p.studentId.name) + (p.studentId && p.studentId.className ? " (" + esc(p.studentId.className) + ")" : ""))}${row("Paid for", esc(p.feeId && p.feeId.title))}${row("Date", new Date(p.paidAt).toLocaleString())}${row("Receipt no.", esc(p.receiptNo))}${row("Balance left", money(p.balanceAfter))}</table>` : '<p class="mu">Your payment was received. Open Payments to see the receipt.</p>';
+    m.innerHTML = payBox("ok", "✅", "Payment successful", (p ? `<div class="pr-amt">${money(p.amount)}</div>` : "") + tbl + payCode(ref)
+      + `<div class="btns">${p ? '<button onclick="receiptModal(window.PAYP)">🧾 View / print receipt</button>' : ""}<button onclick="go('history')">📚 View all payments</button>${home}</div>`);
+    return;
+  }
+  if (st === "failed" || st === "rejected") {
+    m.innerHTML = payBox("bad", "❌", "Payment not completed", '<p class="mu">The payment did not go through, so you were not charged for it. You can try again.</p>' + payCode(ref)
+      + `<div class="btns"><button class="y" onclick="go('pay')">💳 Try again</button>${home}</div>`);
+    return;
+  }
+  m.innerHTML = payBox("wait", st === "error" ? "⚠️" : "⏳", st === "error" ? "Could not check yet" : "Still confirming…",
+    `<p class="mu">${st === "error" ? esc(err) + "<br>" : ""}If money left your phone or card, it will show in <b>Payments</b> as soon as Paystack confirms it. Keep the code below and show it to the school if you need help.</p>` + payCode(ref)
+    + `<div class="btns"><button class="y" onclick="go('paid')">🔄 Check again</button><button onclick="go('history')">📚 View all payments</button>${home}</div>`);
+};
 
 /* ----- payments + receipts ----- */
 PP.history = async m => {
@@ -123,7 +159,7 @@ PP.history = async m => {
 function receiptText(p) {
   const sc = S.school || {}, st = p.studentId || {};
   return "🧾 PAYMENT RECEIPT\n" + (sc.invoiceName || sc.name || "") + "\nReceipt no: " + (p.receiptNo || p.reference) + "\nStudent: " + (st.name || "") + "\nPaid for: " + ((p.feeId && p.feeId.title) || "") +
-    "\nAmount paid: " + money(p.amount) + (p.txnId ? "\nTransaction ID: " + p.txnId : "") + "\nBalance left: " + money(p.balanceAfter) + "\nDate: " + new Date(p.paidAt).toLocaleDateString() + "\nThank you.";
+    "\nAmount paid: " + money(p.amount) + (p.txnId ? "\nTransaction ID: " + p.txnId : "") + (p.method === "paystack" && p.reference ? "\nPayment code: " + p.reference : "") + "\nBalance left: " + money(p.balanceAfter) + "\nDate: " + new Date(p.paidAt).toLocaleDateString() + "\nThank you.";
 }
 function receiptHTML(p) {
   const sc = S.school || {}, st = p.studentId || {}, f = p.feeId || {};
@@ -132,7 +168,7 @@ function receiptHTML(p) {
     <div class="rbn">PAYMENT RECEIPT</div><div style="height:10px"></div>
     <table class="rt2">${row("Receipt no.", "<b>" + esc(p.receiptNo || p.reference) + "</b>")}${row("Date", new Date(p.paidAt).toLocaleString())}
     ${row("Student", esc(st.name) + (st.className ? " (" + esc(st.className) + ")" : ""))}${row("Paid for", esc(f.title))}
-    ${row("Method", esc(METH[p.method] || p.method) + (p.network ? " · " + esc(p.network) : ""))}${p.txnId ? row("Transaction ID", esc(p.txnId)) : ""}
+    ${row("Method", esc(METH[p.method] || p.method) + (p.network ? " · " + esc(p.network) : ""))}${p.txnId ? row("Transaction ID", esc(p.txnId)) : ""}${p.method === "paystack" && p.reference ? row("Payment code", esc(p.reference)) : ""}
     ${row("Fee total", money(p.feeTotal))}${row("<b>Amount paid</b>", "<b>" + money(p.amount) + "</b>")}${row("Balance left on this fee", money(p.balanceAfter))}</table>
     <div style="text-align:center;margin:14px 0 4px"><span style="display:inline-block;border:3px solid #0a7d3b;color:#0a7d3b;font-weight:900;letter-spacing:3px;padding:3px 14px;border-radius:8px;transform:rotate(-5deg)">PAID</span></div>
     <p class="ky">Thank you. This receipt was issued by ${esc(sc.invoiceName || sc.name)}.</p></div>`;
