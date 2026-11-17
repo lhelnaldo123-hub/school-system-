@@ -235,3 +235,19 @@ html[data-tplhd="0"] .th-u .x-head{display:none}
 .rc2.lay-b.mk>.x-head{border-bottom:0}
 .rc2.lay-b.mk .x-ban{border:0}
 .rc2.lay-b.mk .x-tbl td{border-color:var(--bg1)}
+
+/* ---- payment result page (after paying online) ---- */
+.c.payres{display:block;text-align:center;padding:22px 16px}
+.payres .pr-ico{font-size:56px;line-height:1}
+.payres h2{margin:8px 0 2px}
+.payres .pr-amt{font-size:30px;font-weight:900;margin:6px 0 12px}
+.payres.ok .pr-amt{color:#0a7d3b}
+.payres table{width:100%;border-collapse:collapse;margin:8px 0;text-align:left}
+.payres td{padding:7px 4px;border-bottom:1px solid #e3e7f3;font-size:14px;vertical-align:top}
+.payres td:first-child{color:#667;width:40%}
+.pr-code{margin:14px 0;padding:12px;border:2px dashed #0a7d3b;border-radius:12px;background:#f3fff8}
+.payres.bad .pr-code{border-color:#c0392b;background:#fff6f5}
+.payres.wait .pr-code{border-color:#d9a500;background:#fffbe8}
+.pr-code small{display:block;font-weight:800;letter-spacing:.5px;color:#556;font-size:10.5px}
+.pr-code b{display:block;font-size:17px;word-break:break-all;margin:4px 0 8px;user-select:all}
+.payres .btns{display:grid;gap:8px;margin-top:12px}
